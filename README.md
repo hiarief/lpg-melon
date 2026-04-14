@@ -1,59 +1,184 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🔥 Aplikasi Rekap Gas LPG 3KG — Laravel 11
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Fitur Utama
+- **Manajemen Periode** — Generate periode bulanan, cutoff, carry-over otomatis
+- **DO Agen** — Input DO per pangkalan per tanggal, grid rekap bulanan, status lunas/belum
+- **Distribusi Harian** — Input bulk sehari banyak customer, harga per baris, status bayar (lunas/tunda/sebagian)
+- **Cashflow Harian** — Grid pengeluaran per kategori per hari (bensin, rokok, sopir, dll)
+- **Transfer & Setoran** — Setoran kurir → penampung, transfer penampung → rek utama, alokasi ke DO, riwayat mutasi
+- **Ringkasan** — Dashboard lengkap: stok, penjualan, margin, cashflow, piutang DO, gaji kurir, kontrak pangkalan
+- **Piutang External** — Catat pinjaman modal masuk/keluar
+- **Master Data** — CRUD pangkalan, customer, kurir
+- **Kontrak Khusus** — Sukmedi (1000×DO/bulan), Angga (flat 600rb/bulan), harga distribusi 18rb, setoran bisa ditunda
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Persyaratan
+- PHP >= 8.2
+- Composer
+- MySQL 8.0 / MariaDB 10.6+
+- Node.js (opsional, hanya jika ingin build assets lokal)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Langkah Instalasi
 
-## Learning Laravel
+### 1. Buat project Laravel baru
+```bash
+composer create-project laravel/laravel lpg-app
+cd lpg-app
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### 2. Salin semua file dari paket ini
+Salin semua file ke direktori project Laravel sesuai path masing-masing:
+```
+app/Models/           → semua model
+app/Http/Controllers/ → semua controller
+database/migrations/  → semua migrasi
+database/seeders/     → seeder
+resources/views/      → semua blade views
+routes/web.php        → route
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 3. Setup environment
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-## Laravel Sponsors
+Edit `.env`:
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=lpg_rekap
+DB_USERNAME=root
+DB_PASSWORD=your_password
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 4. Buat database
+```sql
+CREATE DATABASE lpg_rekap CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
-### Premium Partners
+### 5. Jalankan migrasi & seeder
+```bash
+php artisan migrate
+php artisan db:seed
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Seeder akan membuat data awal:
+- 4 Pangkalan: Angga (flat 600rb), Arief Hidayat, Fahrul Rozhi, Sukmedi (per DO ×1000)
+- 16 Customer (Angga & Sukmedi sebagai kontrak, sisanya regular)
+- 1 Kurir: Epul (500/tabung)
 
-## Contributing
+### 6. Jalankan server
+```bash
+php artisan serve
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Buka browser: http://localhost:8000
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Cara Pakai (Alur Kerja Bulanan)
 
-## Security Vulnerabilities
+### A. Awal Bulan — Buat Periode
+1. Klik **📅 Periode** → **Buat Periode Baru**
+2. Isi bulan & tahun
+3. Isi saldo awal (dari penutupan bulan lalu):
+   - Stok tabung sisa
+   - Saldo kas fisik
+   - Saldo rekening penampung
+   - Piutang external (jika ada)
+   - Tabung DO bulan lalu yang belum lunas
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### B. Harian — Input DO
+1. Klik **📦 DO Agen** → **+ Input DO**
+2. Pilih pangkalan, isi tanggal + qty + harga (default 16000)
+3. DO otomatis masuk rekap grid
 
-## License
+### C. Harian — Input Distribusi
+1. Klik **🚚 Distribusi** → **+ Input Harian Bulk**
+2. Pilih tanggal, kurir (Epul)
+3. Tambah baris per customer:
+   - Qty, harga/tabung (18000-20000)
+   - Status bayar: Lunas / Tunda / Sebagian
+4. Untuk Angga & Sukmedi (★): pilih status **Tunda** jika belum bayar
+5. Klik **Simpan Semua**
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### D. Harian — Catat Setoran Kurir
+1. Klik **🏦 Transfer** → Tab **Setoran Kurir**
+2. Input nominal setoran kurir ke rekening penampung (+ biaya admin jika ada)
+
+### E. Harian/Berkala — Input Pengeluaran
+1. Klik **💸 Cashflow**
+2. Input pengeluaran: bensin, rokok, sopir, oli, dll per tanggal
+
+### F. Berkala — Transfer Penampung ke Rek Utama
+1. Klik **🏦 Transfer** → Tab **Transfer ke Rek Utama**
+2. Input nominal transfer
+3. Alokasikan ke DO mana yang dilunasi (klik **+ Tambah DO**)
+4. Klik **Simpan Transfer & Update Status DO**
+5. Status DO otomatis terupdate (lunas/sebagian)
+
+### G. Akhir Bulan — Bayar Kontrak & Gaji
+1. Klik **📊 Ringkasan** → Bagian **Piutang & Kewajiban**
+2. Klik **↻ Recalculate Kontrak** untuk update nilai Sukmedi (1000×total DO)
+3. Tandai kontrak Angga & Sukmedi sebagai **Lunas**
+4. Gaji Epul otomatis terhitung di Ringkasan
+
+### H. Tutup Periode
+1. Klik **📅 Periode** → klik **Tutup** pada periode berjalan
+2. Saldo akhir akan dicatat untuk dijadikan saldo awal bulan berikutnya
+
+---
+
+## Catatan Penting
+
+### Kontrak Khusus
+| Pihak   | Tipe        | Tarif          | Harga Distribusi | Setoran        |
+|---------|-------------|----------------|-----------------|----------------|
+| Sukmedi | Per DO      | 1000×total DO  | 18.000/tabung   | Bisa ditunda   |
+| Angga   | Flat Bulanan| 600.000/bulan  | 18.000/tabung   | Bisa ditunda   |
+
+### Alur Pembayaran DO
+```
+Penjualan Gas → Kurir (Epul) → Rekening Penampung → Rekening Utama → Lunasi DO Agen
+```
+
+### Piutang DO Carry-Over
+- DO yang belum lunas di bulan sebelumnya tetap muncul di halaman Transfer
+- Bisa dialokasikan di bulan berikutnya
+
+### Catatan `net_amount` di CourierDeposit
+Jika MySQL Anda tidak support `storedAs` (generated column), ganti baris tersebut di migration:
+```php
+// Ganti ini:
+$table->bigInteger('net_amount')->storedAs('amount - admin_fee');
+// Dengan ini:
+$table->bigInteger('net_amount')->default(0);
+```
+Dan update di controller:
+```php
+CourierDeposit::create([...] + ['net_amount' => $request->amount - ($request->admin_fee ?? 0)]);
+```
+
+---
+
+## Struktur Database
+
+```
+periods               → periode bulanan
+outlets               → 4 pangkalan (Angga, Arief, Fahrul, Sukmedi)
+customers             → customer distribusi harian
+couriers              → kurir (Epul)
+delivery_orders       → DO dari agen per pangkalan
+distributions         → distribusi harian kurir ke customer
+daily_expenses        → pengeluaran operasional harian
+courier_deposits      → setoran kurir ke rekening penampung
+account_transfers     → transfer penampung ke rekening utama
+account_transfer_do   → pivot: transfer ↔ DO (alokasi pembayaran)
+external_debts        → piutang/modal pihak luar
+outlet_contract_payments → pembayaran kontrak pangkalan per periode
+```
