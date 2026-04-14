@@ -895,6 +895,8 @@ $remainDays        = $pred['remainDays'] ?? 0;
         @foreach($unpaidDOs as $udo)
         <div class="debt-row">
             <div class="debt-row-label">
+                {{ $udo->outlet->name }}
+                <span style="font-size:9px;color:var(--text3)"> · {{ $udo->do_date->format('d/m/Y') }} · {{ $udo->qty }} tab</span>
             </div>
             <div class="debt-row-amount red">Rp {{ number_format($udo->remainingAmount()) }}</div>
         </div>

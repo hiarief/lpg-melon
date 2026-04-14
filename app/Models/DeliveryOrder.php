@@ -48,4 +48,10 @@ class DeliveryOrder extends Model
         $this->payment_status = $paid <= 0 ? 'unpaid' : ($paid >= $total ? 'paid' : 'partial');
         $this->save();
     }
+
+    public function setDoDateAttribute($value)
+    {
+        $this->attributes['do_date'] = \Carbon\Carbon::createFromFormat('d/m/Y', $value)
+            ->format('Y-m-d');
+    }
 }
