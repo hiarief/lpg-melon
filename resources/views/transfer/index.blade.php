@@ -450,8 +450,12 @@
                 <table class="mob-table">
                     <thead>
                         <tr>
-                            <th>Tanggal</th><th class="r">Nominal</th><th class="r">Surplus</th>
-                            <th>DO Dilunasi</th><th>Catatan</th>
+                            <th>Tanggal Transfer</th>
+                            <th>Tanggal DO</th>
+                            <th class="r">Nominal</th>
+                            <th class="r">Surplus</th>
+                            <th>DO Dilunasi</th>
+                            <th>Catatan</th>
                             @if($period->status === 'open') <th>Aksi</th> @endif
                         </tr>
                     </thead>
@@ -459,6 +463,7 @@
                         @forelse($transfers as $tf)
                         <tr>
                             <td>{{ $tf->transfer_date->format('d/m/Y') }}</td>
+                            <td>{{ $tf->deliveryOrders->first()->do_date->format('d/m/Y') }}</td>
                             <td class="r bold" style="color:#1d4ed8">Rp {{ number_format($tf->amount) }}</td>
                             <td class="r" style="color:{{ $tf->surplus > 0 ? 'var(--melon-dark)' : 'var(--text3)' }}">
                                 {{ $tf->surplus > 0 ? 'Rp ' . number_format($tf->surplus) : '—' }}
