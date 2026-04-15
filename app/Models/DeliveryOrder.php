@@ -49,9 +49,9 @@ class DeliveryOrder extends Model
         $this->save();
     }
 
-    public function setDoDateAttribute($value)
-    {
-        $this->attributes['do_date'] = \Carbon\Carbon::createFromFormat('d/m/Y', $value)
-            ->format('Y-m-d');
-    }
+    // public function setDoDateAttribute($value)
+    // {
+    //     $this->attributes['do_date'] = \Carbon\Carbon::createFromFormat('d/m/Y', $value)
+    //         ->format('Y-m-d');
+    // }
 }
