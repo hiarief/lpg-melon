@@ -79,6 +79,7 @@ class CashflowController extends Controller
         $totalDeposits   = (int) array_sum(array_column($depositsByDay, 'total'));
         $totalAdminFees  = (int) array_sum(array_column($depositsByDay, 'admin'));
         $totalTransferred = (int) array_sum(array_column($transfersByDay, 'total'));
+        $totalSurplus     = (int) array_sum(array_column($transfersByDay, 'surplus'));
 
         // ── Saldo pembuka ───────────────────────────────────────────────────
         $openingCash      = (int) $period->opening_cash;
@@ -119,6 +120,7 @@ class CashflowController extends Controller
             totalDeposits: $totalDeposits,
             totalAdminFees: $totalAdminFees,
             totalTransferred: $totalTransferred,
+            totalSurplus: $totalSurplus,
             totalExpense: $totalExpense,
             totalIncome: $totalIncome,
             totalMargin: $totalMargin,
@@ -177,7 +179,7 @@ class CashflowController extends Controller
             'salesByDay', 'marginByDay', 'daysInMonth',
             'totalExpense', 'totalIncome', 'totalMargin',
             'depositsByDay', 'totalDeposits', 'totalAdminFees',
-            'transfersByDay', 'totalTransferred',
+            'transfersByDay', 'totalTransferred','totalSurplus',
             'openingCash', 'openingPenampung',
             'dailyBalance', 'dailyBankBalance',
             'netKas', 'finalBankBal',
@@ -520,7 +522,7 @@ class CashflowController extends Controller
         Period $period, int $daysInMonth,
         array $salesByDay, array $marginByDay, array $dayTotals,
         array $depositsByDay, array $transfersByDay,
-        int $totalDeposits, int $totalAdminFees, int $totalTransferred,
+        int $totalDeposits, int $totalAdminFees, int $totalTransferred, int $totalSurplus,
         int $totalExpense, int $totalIncome, int $totalMargin,
         int $openingCash, int $openingPenampung,
         int $netKas, int $finalBankBal,
@@ -645,7 +647,7 @@ class CashflowController extends Controller
         ), $this->calcPredRatios(
             $totalMargin, $totalExpense, $projMargin, $projExp, $piutangCairEstimasi, $today
         ), $this->calcPredBank(
-            $finalBankBal, $totalDeposits, $totalTransferred,
+            $finalBankBal, $totalDeposits, $totalTransferred, $totalSurplus,
             $depActiveDays, $tfActiveDays, $remainDays
         ), $this->calcConfidence(
             $today, $salesMomentum, $expMomentum, $piutangBelumBayar, $totalIncome, $remainDays
@@ -692,7 +694,7 @@ class CashflowController extends Controller
 
     /** Prediksi saldo BANK penampung */
     private function calcPredBank(
-        int $finalBankBal, int $totalDeposits, int $totalTransferred,
+        int $finalBankBal, int $totalDeposits, int $totalTransferred, int $totalSurplus,
         int $depActiveDays, int $tfActiveDays, int $remainDays
     ): array {
         $grossDepRate = $depActiveDays > 0 ? $totalDeposits / $depActiveDays : 0;

@@ -152,6 +152,11 @@
                 <div style="font-size:16px;font-weight:600;color:#6d28d9;margin-top:2px">{{ $totalTransferred > 0 ? 'Rp '.number_format($totalTransferred) : '—' }}</div>
                 <div style="font-size:10px;color:var(--text3)">avg Rp {{ number_format($summary['avgNet']) }}/hari</div>
             </div>
+            <div class="card" style="padding:10px 12px">
+                <div style="font-size:10px;color:var(--text3)">Surplus (tabungan)</div>
+                <div style="font-size:16px;font-weight:600;color:#6d28d9;margin-top:2px">{{ $totalSurplus > 0 ? 'Rp '.number_format($totalSurplus) : '—' }}</div>
+                <div style="font-size:10px;color:var(--text3)">tidak dihitung sebagai pengeluaran</div>
+            </div>
         </div>
 
         {{-- Saldo Akhir --}}
