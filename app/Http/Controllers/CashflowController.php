@@ -622,7 +622,7 @@ $holtsConfidence = max(20, min(92, $holtsConfidence));
     {
         $periodId = $expense->period_id;
         $expense->delete();
-        return redirect()->route('cashflow.index', ['period_id' => $periodId])
+        return redirect()->route('cashflow.index1', ['period_id' => $periodId])
             ->with('success', 'Pengeluaran dihapus.');
     }
 }
