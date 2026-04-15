@@ -497,6 +497,7 @@
                     <tfoot>
                         <tr class="total-row">
                             <td class="bold">TOTAL</td>
+                            <td></td>
                             <td class="r bold">Rp {{ number_format($totalTransferred) }}</td>
                             <td class="r bold">{{ $totalSurplus > 0 ? 'Rp ' . number_format($totalSurplus) : '—' }}</td>
                             <td colspan="{{ $period->status === 'open' ? 3 : 2 }}"></td>
