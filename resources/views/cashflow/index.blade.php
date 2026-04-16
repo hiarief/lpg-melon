@@ -177,11 +177,11 @@
         {{-- Net cashflow banner --}}
         <div style="background:var(--melon-50);border:0.5px solid var(--border);border-radius:8px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
             <div>
-                <div style="font-size:12px;font-weight:600;color:var(--text1)">Saldo KAS bersih periode ini</div>
+                <div style="font-size:12px;font-weight:600;color:var(--text1)">Saldo KAS bersih periode ini / {{ number_format($netTotal / 16000) }} Tab</div>
                 <div style="font-size:10px;color:var(--text3);margin-top:2px">kas masuk − pengeluaran − TF penampung − admin TF</div>
             </div>
-            <div style="font-size:20px;font-weight:700;color:{{ $netKas >= 0 ? 'var(--melon-dark)' : '#dc2626' }};white-space:nowrap">
-                Rp {{ number_format($netKas) }}
+            <div style="font-size:20px;font-weight:700;color:{{ $netTotal >= 0 ? 'var(--melon-dark)' : '#dc2626' }};white-space:nowrap">
+                Rp {{ number_format($netTotal) }}
             </div>
         </div>
     </div>

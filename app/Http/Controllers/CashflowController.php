@@ -99,6 +99,7 @@ class CashflowController extends Controller
 
         $netKas       = $dailyBalance[$daysInMonth];
         $finalBankBal = $dailyBankBalance[$daysInMonth];
+        $netTotal     = $netKas + $finalBankBal;
 
         // ── Data tabung & piutang ───────────────────────────────────────────
         $distribData       = $this->getDistribAggregate($period);
@@ -128,6 +129,7 @@ class CashflowController extends Controller
             openingPenampung: $openingPenampung,
             netKas: $netKas,
             finalBankBal: $finalBankBal,
+            netTotal: $netTotal,
             totalTabungAktual: $totalTabungAktual,
             avgTabungPerHari: $avgTabungPerHari,
             piutangBelumBayar: $piutangBelumBayar,
@@ -167,7 +169,7 @@ class CashflowController extends Controller
         $summary = $this->buildSummary(
             $openingCash, $totalIncome, $totalExpense,
             $totalDeposits, $totalAdminFees, $totalMargin,
-            $netKas, $finalBankBal,
+            $netKas, $finalBankBal, $netTotal,
             $dailyBalance, $dailyBankBalance,
             $salesByDay, $dayTotals, $depositsByDay,
             $daysInMonth
@@ -182,7 +184,7 @@ class CashflowController extends Controller
             'transfersByDay', 'totalTransferred','totalSurplus',
             'openingCash', 'openingPenampung',
             'dailyBalance', 'dailyBankBalance',
-            'netKas', 'finalBankBal',
+            'netKas', 'finalBankBal', 'netTotal',
             'totalTabungAktual', 'avgTabungPerHari',
             'piutangBelumBayar', 'piutangMarginBelumBayar',
             'pred', 'ols', 'mc', 'chartData', 'summary'
@@ -299,7 +301,7 @@ class CashflowController extends Controller
     private function buildSummary(
         int $openingCash, int $totalIncome, int $totalExpense,
         int $totalDeposits, int $totalAdminFees, int $totalMargin,
-        int $netKas, int $finalBankBal,
+        int $netKas, int $finalBankBal, int $netTotal,
         array $dailyBalance, array $dailyBankBalance,
         array $salesByDay, array $dayTotals, array $depositsByDay,
         int $daysInMonth
@@ -525,7 +527,7 @@ class CashflowController extends Controller
         int $totalDeposits, int $totalAdminFees, int $totalTransferred, int $totalSurplus,
         int $totalExpense, int $totalIncome, int $totalMargin,
         int $openingCash, int $openingPenampung,
-        int $netKas, int $finalBankBal,
+        int $netKas, int $finalBankBal, int $netTotal,
         int $totalTabungAktual, float $avgTabungPerHari,
         int $piutangBelumBayar, int $piutangMarginBelumBayar,
     ): array {
