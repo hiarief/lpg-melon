@@ -496,7 +496,13 @@
                 </tr>
             </thead>
             <tbody>
+                @php
+                    $totalExpense = 0;
+                @endphp
                 @forelse($expenses as $exp)
+                @php
+                    $totalExpense += $exp->amount;
+                @endphp
                 <tr>
                     <td>{{ $exp->expense_date->format('d/m/Y') }}</td>
                     <td><span class="badge badge-orange">{{ $exp->categoryLabel() }}</span></td>
@@ -514,6 +520,16 @@
                 @empty
                 <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text3)">Belum ada pengeluaran.</td></tr>
                 @endforelse
+                <tr style="background:#f9fafb;font-weight:700;border-top:2px solid #e5e7eb;">
+                    <td colspan="3" class="r">TOTAL</td>
+                    <td class="r" style="color:#dc2626">
+                        Rp {{ number_format($totalExpense) }}
+                    </td>
+                    @if($period->status === 'open')
+                    <td></td>
+                    @endif
+                </tr>
+
             </tbody>
         </table>
     </div>

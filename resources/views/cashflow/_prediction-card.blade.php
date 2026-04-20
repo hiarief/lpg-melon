@@ -562,7 +562,7 @@
                     <div id="mc-ci50" style="font-size:11px;font-weight:600;color:var(--text1)"></div>
                 </div>
             </div>
-            <div id="mc-interpretation" style="border:0.5px solid;border-radius:8px;padding:10px 12px;font-size:10px;line-height:1.6"></div>
+            <div id="mc-interpretation" style="border:0.5px solid;border-radius:8px;padding:10px 12px;font-size:10px;line-height:1.6;margin-top:8px"></div>
         </div>
     </div>{{-- end panel MC --}}
 

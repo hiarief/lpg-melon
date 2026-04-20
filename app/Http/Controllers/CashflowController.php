@@ -49,19 +49,23 @@ class CashflowController extends Controller
             ->groupBy('day')->pluck('total', 'day')->toArray();
 
         $marginByDay = Distribution::where('period_id', $period->id)
-            ->where('paid_amount', '>', 0)
             ->selectRaw('
-                DAY(dist_date)                               as day,
-                SUM(paid_amount)                             as gross,
-                SUM(qty)                                     as total_qty,
-                SUM(paid_amount - (qty * ?))                 as margin
+                DAY(dist_date) as day,
+                SUM(qty * price_per_unit) as gross,
+                SUM(qty) as total_qty,
+                SUM((qty * price_per_unit) - (qty * ?)) as margin
             ', [self::HPP_PER_TABUNG])
-            ->groupBy('day')->get()->keyBy('day')
+            ->groupBy('day')
+            ->get()
+            ->keyBy('day')
             ->map(fn($r) => [
                 'gross'  => (int) $r->gross,
                 'qty'    => (int) $r->total_qty,
-                'margin' => max(0, (int) $r->margin),
-            ])->toArray();
+                'margin' => (int) $r->margin, // ⛔ jangan pakai max(0) kalau mau konsisten full
+            ])
+            ->toArray();
+
+        $totalMargin = array_sum(array_column($marginByDay, 'margin'));
 
         // ── Deposit & transfer ──────────────────────────────────────────────
         $depositsByDay = CourierDeposit::where('period_id', $period->id)
@@ -333,7 +337,6 @@ class CashflowController extends Controller
         // Rasio
         $rasioOperasional = $totalMargin > 0 ? $totalExpense / $totalMargin * 100 : 0;
         $rasioGross       = $totalAvailable > 0 ? $totalKasKeluar / $totalAvailable * 100 : 0;
-
         return [
             'totalAvailable'    => $totalAvailable,
             'totalKasKeluar'    => $totalKasKeluar,
