@@ -281,6 +281,11 @@ $pr = $projectionData; // proyeksi
                 </span>
                 <span class="kpi-sub">belum terbayar</span>
             </div>
+            <div class="kpi-card" style="border-color:#d1fae5;">
+                <span class="kpi-label">Total Margin</span>
+                <span class="kpi-value" style="color:#059669;">Rp {{ number_format($s['allMargin']) }}</span>
+                <span class="kpi-sub">tagihan − HPP Rp16.000/tab</span>
+            </div>
         </div>
 
         {{-- Chart canvas --}}
@@ -698,6 +703,7 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                     <th class="r" style="background:var(--melon-50);">Nilai (Rp)</th>
                     <th class="r" style="background:var(--melon-50);">Terbayar</th>
                     <th class="r" style="background:#f5f3ff;">Avg/Tab</th>
+                    <th class="r" style="background:#d1fae5;">Margin</th>
                     <th class="r" style="background:#fef2f2;">Piutang</th>
                 </tr>
             </thead>
@@ -707,6 +713,8 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                     $t        = $customerTotals[$c->id] ?? ['qty' => 0, 'total_value' => 0, 'paid' => 0];
                     $avgHarga = $t['qty'] > 0 ? round($t['total_value'] / $t['qty']) : 0;
                     $selisih  = $t['total_value'] - $t['paid'];
+                    $margin    = $customerTotals[$c->id]['margin']     ?? 0;
+                    $baseCost = $customerTotals[$c->id]['base_cost'] ?? 0;
                 @endphp
                 <tr style="{{ $c->type === 'contract' ? 'background:#fffbeb;' : '' }}">
                     <td class="bold" style="position:sticky;left:0;z-index:5;background:{{ $c->type === 'contract' ? '#fffbeb' : '#fff' }};min-width:110px;">
@@ -736,6 +744,9 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                     <td class="r" style="color:#7c3aed;font-weight:600;">
                         {{ $avgHarga > 0 ? 'Rp '.number_format($avgHarga) : '-' }}
                     </td>
+                    <td class="r" style="font-weight:600;color:{{ $margin >= 0 ? '#059669' : '#dc2626' }};">
+                        {{ $t['qty'] > 0 ? 'Rp '.number_format($margin) : '-' }}
+                    </td>
                     <td class="r" style="font-weight:600;color:{{ $selisih > 0 ? '#dc2626' : ($t['total_value'] > 0 ? 'var(--melon-dark)' : 'var(--text3)') }};">
                         {{ $t['total_value'] > 0 ? ($selisih > 0 ? 'Rp '.number_format($selisih) : '✓ Lunas') : '-' }}
                     </td>
@@ -753,6 +764,9 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                     <td class="r">Rp {{ number_format($s['allVal']) }}</td>
                     <td class="r">Rp {{ number_format($s['allPaid']) }}</td>
                     <td class="r">Rp {{ number_format($avgPriceTotal) }}</td>
+                    <td class="r" style="background:#d1fae5;font-weight:700;color:#059669;">
+                        Rp {{ number_format($s['allMargin']) }}
+                    </td>
                     <td class="r">{{ $s['piutang'] > 0 ? 'Rp '.number_format($s['piutang']) : '✓ Lunas' }}</td>
                 </tr>
 
@@ -768,9 +782,14 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                             {{ $avg > 0 ? number_format($avg / 1000, 1).'k' : '-' }}
                         </td>
                     @endfor
-                    <td class="r" colspan="2" style="color:#7c3aed;font-weight:700;font-size:11px;">Rp {{ number_format($avgPriceTotal) }}/tab</td>
-                    <td></td><td></td><td></td>
+                    <td class="r" style="color:#7c3aed;font-weight:700;font-size:11px;"></td>
+                    <td class="r" style="color:#7c3aed;font-weight:700;font-size:11px;"></td>
+                    <td class="r" style="color:#7c3aed;font-weight:700;font-size:11px;"></td>
+                    <td class="r" style="color:#7c3aed;font-weight:700;font-size:11px;">Rp {{ number_format($avgPriceTotal) }}/tab</td>
+                    <td class="r" style="color:#7c3aed;font-weight:700;font-size:11px;"></td>
+                    <td class="r" style="color:#7c3aed;font-weight:700;font-size:11px;"></td>
                 </tr>
+
 
                 {{-- Selisih piutang per hari --}}
                 <tr style="background:#fef2f2;">
@@ -793,7 +812,9 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                     <td class="r" style="font-weight:700;font-size:12px;color:{{ $s['piutang'] > 0 ? '#dc2626' : 'var(--melon-dark)' }};">
                         {{ $s['piutang'] > 0 ? 'Rp '.number_format($s['piutang']) : '✓ Lunas' }}
                     </td>
-                    <td></td><td></td>
+                    <td class="r muted" style="font-size:10px;"></td>
+                    <td class="r muted" style="font-size:10px;"></td>
+                    <td class="r muted" style="font-size:10px;"></td>
                 </tr>
 
                 {{-- Avg per hari aktif --}}
@@ -803,12 +824,14 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                         <div class="grid-sub">dari {{ $s['activeDays'] }} hari aktif</div>
                     </td>
                     @for($day = 1; $day <= $daysInMonth; $day++)
-                        <td class="r" style="color:var(--border);font-size:10px;">–</td>
+                        <td class="r" style="font-size:11px;color:var(--text2);background:var(--surface2);">–</td>
                     @endfor
-                    <td class="r" style="font-size:11px;color:var(--text2);font-weight:600;">{{ $avgQtyPerDay }} tab</td>
-                    <td class="r" style="font-size:11px;color:var(--text2);">Rp {{ number_format($avgValPerDay) }}</td>
-                    <td class="r" style="font-size:11px;color:var(--text2);">Rp {{ number_format($avgPaidPerDay) }}</td>
-                    <td></td><td></td>
+                    <td class="r" style="font-size:11px;color:var(--text2);background:var(--surface2);font-weight:600;">{{ $avgQtyPerDay }} tab</td>
+                    <td class="r" style="font-size:11px;color:var(--text2);background:var(--surface2);">Rp {{ number_format($avgValPerDay) }}</td>
+                    <td class="r" style="font-size:11px;color:var(--text2);background:var(--surface2);">Rp {{ number_format($avgPaidPerDay) }}</td>
+                    <td class="r" style="font-size:11px;color:var(--text2);background:var(--surface2);"></td>
+                    <td class="r" style="font-size:11px;color:var(--text2);background:var(--surface2);"></td>
+                    <td class="r" style="font-size:11px;color:var(--text2);background:var(--surface2);"></td>
                 </tr>
             </tbody>
         </table>
@@ -838,6 +861,7 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                     <th class="r">Qty</th>
                     <th class="r">Harga</th>
                     <th class="r">Nilai</th>
+                    <th class="r" style="background:#d1fae5;">Margin</th>
                     <th class="r">Bayar</th>
                     <th class="r">Selisih</th>
                     <th>Status</th>
@@ -845,10 +869,24 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                 </tr>
             </thead>
             <tbody>
+                @php
+                    $totalQty = 0;
+                    $totalNilai = 0;
+                    $totalMargin = 0;
+                    $totalBayar = 0;
+                    $totalSelisih = 0;
+                @endphp
                 @forelse($distributions as $dist)
                 @php
                     $distNilai   = $dist->qty * $dist->price_per_unit;
+                    $distMargin   = $distNilai - ($dist->qty * 16000);   // ← tambahkan ini
                     $distSelisih = $distNilai - $dist->paid_amount;
+
+                    $totalQty     += $dist->qty;
+                    $totalNilai   += $distNilai;
+                    $totalMargin  += max(0, $distMargin);
+                    $totalBayar   += $dist->paid_amount;
+                    $totalSelisih += max(0, $distSelisih);
                 @endphp
                 <tr style="{{ $dist->customer->type === 'contract' ? 'background:#fffbeb;' : '' }}">
                     <td>{{ $dist->dist_date->format('d/m') }}</td>
@@ -857,6 +895,9 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                     <td class="r bold">{{ $dist->qty }}</td>
                     <td class="r">{{ number_format($dist->price_per_unit) }}</td>
                     <td class="r bold">{{ number_format($distNilai) }}</td>
+                    <td class="r" style="font-weight:600;color:{{ $distMargin >= 0 ? '#059669' : '#dc2626' }};">
+                        {{ number_format($distMargin) }}
+                    </td>
                     <td class="r">{{ number_format($dist->paid_amount) }}</td>
                     <td class="r bold" style="color:{{ $distSelisih > 0 ? '#dc2626' : 'var(--melon-dark)' }};">
                         {{ $distSelisih > 0 ? number_format($distSelisih) : '✓' }}
@@ -902,6 +943,20 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                     <td colspan="10" style="text-align:center;padding:24px;color:var(--text3);">Belum ada distribusi.</td>
                 </tr>
                 @endforelse
+                <tr style="background:#f9fafb;font-weight:700;border-top:2px solid #e5e7eb;">
+                    <td colspan="3" class="r">TOTAL</td>
+                    <td class="r">{{ number_format($totalQty) }}</td>
+                    <td></td>
+                    <td class="r">{{ number_format($totalNilai) }}</td>
+                    <td class="r" style="color:#059669;">
+                        {{ number_format($totalMargin) }}
+                    </td>
+                    <td class="r">{{ number_format($totalBayar) }}</td>
+                    <td class="r" style="color:#dc2626;">
+                        {{ number_format($totalSelisih) }}
+                    </td>
+                    <td colspan="{{ $period->status === 'open' ? 2 : 1 }}"></td>
+                </tr>
             </tbody>
         </table>
     </div>

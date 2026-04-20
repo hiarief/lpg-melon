@@ -13,6 +13,7 @@ use Illuminate\Support\Collection;
 
 class DistributionController extends Controller
 {
+    const BASE_PRICE = 16000;
     // ──────────────────────────────────────────────────────────────
     // PUBLIC ACTIONS
     // ──────────────────────────────────────────────────────────────
@@ -247,11 +248,17 @@ class DistributionController extends Controller
         $totals = [];
 
         foreach ($customers as $c) {
-            $rows = $distributions->where('customer_id', $c->id);
+            $rows        = $distributions->where('customer_id', $c->id);
+            $qty         = $rows->sum('qty');
+            $total_value = $rows->sum(fn($d) => $d->qty * $d->price_per_unit);
+            $base_cost   = $qty * self::BASE_PRICE;
+
             $totals[$c->id] = [
-                'qty'         => $rows->sum('qty'),
-                'total_value' => $rows->sum(fn($d) => $d->qty * $d->price_per_unit),
+                'qty'         => $qty,
+                'total_value' => $total_value,
                 'paid'        => $rows->sum('paid_amount'),
+                'base_cost'   => $base_cost,
+                'margin'       => $total_value - $base_cost,   // margin kotor
             ];
         }
 
@@ -291,11 +298,13 @@ class DistributionController extends Controller
      */
     private function buildSummaryData(array $customerTotals, array $chartData, int $daysInMonth): array
     {
-        $allQty    = array_sum(array_column($customerTotals, 'qty'));
-        $allVal    = array_sum(array_column($customerTotals, 'total_value'));
-        $allPaid   = array_sum(array_column($customerTotals, 'paid'));
-        $piutang   = $allVal - $allPaid;
-        $activeDays = count(array_filter($chartData['qty']));
+        $allQty      = array_sum(array_column($customerTotals, 'qty'));
+        $allVal      = array_sum(array_column($customerTotals, 'total_value'));
+        $allPaid     = array_sum(array_column($customerTotals, 'paid'));
+        $allBaseCost = array_sum(array_column($customerTotals, 'base_cost'));
+        $allMargin    = array_sum(array_column($customerTotals, 'margin'));
+        $piutang     = $allVal - $allPaid;
+        $activeDays  = count(array_filter($chartData['qty']));
 
         // Nilai/kas harian per hari aktif
         $hariLabels = $hariNilai = $hariKas = $hariPiutang = $hariQty = $hariHarga = [];
@@ -327,6 +336,8 @@ class DistributionController extends Controller
             'allQty'       => $allQty,
             'allVal'       => $allVal,
             'allPaid'      => $allPaid,
+            'allBaseCost'  => $allBaseCost,   // ← baru
+            'allMargin'     => $allMargin,       // ← baru
             'piutang'      => $piutang,
             'activeDays'   => $activeDays,
             // Averages
