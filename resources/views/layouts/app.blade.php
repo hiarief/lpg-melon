@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>@yield('title', 'LPG 3KG') — Rekap Gas</title>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="{{ asset('assets/js/cdn.min.js') }}"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="{{ asset('assets/js/css2.css') }}" rel="stylesheet">
     <style>
         /* ════════════════════════════════
            ROOT TOKENS
@@ -456,10 +456,110 @@
 
         /* Desktop mode: batasi lebar konten saja, bukan main */
         body.desktop-mode .content-inner {
-            max-width: 1000px;
+            max-width: 1120px;
             margin-left: auto;
             margin-right: auto;
         }
+
+        /* ════════════════════════════════
+        AVATAR DROPDOWN
+        ════════════════════════════════ */
+        .avatar-dropdown-wrap {
+        position: relative;
+        flex-shrink: 0;
+        }
+        .avatar-btn {
+        width: 34px; height: 34px;
+        background: rgba(255,255,255,0.18);
+        border: 1.5px solid rgba(255,255,255,0.38);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        position: relative;
+        }
+        .avatar-dot {
+        position: absolute;
+        bottom: -1px; right: -1px;
+        width: 9px; height: 9px;
+        background: rgba(255,255,255,0.45);
+        border-radius: 50%;
+        border: 1.5px solid var(--melon);
+        transition: background 0.2s;
+        }
+        body.desktop-mode .avatar-dot { background: #A5D6A7; }
+
+        .avatar-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        min-width: 210px;
+        background: var(--surface);
+        border: 0.5px solid var(--border2);
+        border-radius: var(--radius);
+        box-shadow: 0 6px 24px rgba(46,125,50,0.13);
+        z-index: 100;
+        overflow: hidden;
+        transform-origin: top right;
+        }
+        .avatar-menu-header {
+        padding: 11px 14px 10px;
+        border-bottom: 0.5px solid var(--border);
+        }
+        .avatar-menu-name { font-size: 12px; font-weight: 600; color: var(--text1); }
+        .avatar-menu-email { font-size: 10px; color: var(--text3); margin-top: 1px; }
+
+        .avatar-menu-body { padding: 5px 6px; }
+        .avatar-menu-footer {
+        padding: 5px 6px 6px;
+        border-top: 0.5px solid var(--border);
+        }
+        .avatar-menu-item {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 8px 10px;
+        border-radius: 9px;
+        border: none;
+        background: transparent;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text1);
+        cursor: pointer;
+        text-decoration: none;
+        text-align: left;
+        }
+        .avatar-menu-item:active { background: var(--melon-50); }
+        .avatar-menu-item.danger { color: #b91c1c; }
+        .avatar-menu-item.danger:active { background: #fef2f2; }
+        .ami-icon { font-size: 15px; flex-shrink: 0; }
+        .ami-label { flex: 1; }
+
+        /* Toggle switch */
+        .ami-toggle {
+        width: 32px; height: 18px;
+        border-radius: 9px;
+        background: #ccc;
+        position: relative;
+        transition: background 0.2s;
+        flex-shrink: 0;
+        }
+        body.desktop-mode .ami-toggle { background: var(--melon); }
+        .ami-thumb {
+        width: 14px; height: 14px;
+        background: #fff;
+        border-radius: 50%;
+        position: absolute;
+        top: 2px; left: 2px;
+        transition: left 0.2s;
+        }
+        body.desktop-mode .ami-thumb { left: 16px; }
+
     </style>
 </head>
 <body>
@@ -480,30 +580,62 @@
         <a href="{{ route('home') }}" class="brand">
             <div class="brand-icon">⛽</div>
             <div>
-                <div class="brand-name">Gas LPG 3KG</div>
+                <div class="brand-name">LPG 3KG</div>
                 <div class="brand-sub">Rekap &amp; Manajemen</div>
             </div>
         </a>
-        <div class="header-actions">
-            {{-- Desktop Mode Toggle Button --}}
-            <button type="button"
-                    id="desktopModeBtn"
-                    class="desktop-toggle-btn"
-                    onclick="toggleDesktopMode()"
-                    title="Toggle Mode Desktop">
-                <span class="toggle-dot" id="toggleDot"></span>
-                <span class="toggle-icon" id="toggleIcon">🖥️</span>
-                <span id="toggleLabel">Desktop</span>
-            </button>
+        {{-- GANTI bagian header-actions --}}
+<div class="header-actions">
 
-            <a href="{{ route('password.form') }}" class="avatar-btn" title="Ganti Password">
-                {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
-            </a>
-            <form method="POST" action="{{ route('logout') }}" style="display:inline">
-                @csrf
-                <button type="submit" class="logout-btn">🚪 Keluar</button>
-            </form>
+    {{-- Avatar Dropdown --}}
+    <div class="avatar-dropdown-wrap" x-data="{ open: false }">
+        <button type="button" class="avatar-btn" @click="open = !open" @keydown.escape="open = false" title="Akun">
+            {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+            <span class="avatar-dot" id="toggleDot"></span>
+        </button>
+
+        <div class="avatar-menu" x-show="open" @click.outside="open = false"
+             x-transition:enter="transition ease-out duration-150"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-100"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95"
+             x-cloak>
+
+            <div class="avatar-menu-header">
+                <div class="avatar-menu-name">{{ Auth::user()->name }}</div>
+                <div class="avatar-menu-email">{{ Auth::user()->email }}</div>
+            </div>
+
+            <div class="avatar-menu-body">
+                <button type="button" class="avatar-menu-item" onclick="toggleDesktopMode()">
+                    <span class="ami-icon">🖥️</span>
+                    <span class="ami-label">Mode Desktop</span>
+                    <div class="ami-toggle" id="desktopToggle">
+                        <div class="ami-thumb" id="desktopThumb"></div>
+                    </div>
+                </button>
+                <a href="{{ route('password.form') }}" class="avatar-menu-item">
+                    <span class="ami-icon">🔑</span>
+                    <span class="ami-label">Ganti Password</span>
+                </a>
+            </div>
+
+            <div class="avatar-menu-footer">
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="avatar-menu-item danger">
+                        <span class="ami-icon">🚪</span>
+                        <span class="ami-label">Keluar dari Akun</span>
+                    </button>
+                </form>
+            </div>
         </div>
+    </div>
+
+    {{-- Hapus logout-btn lama, sudah masuk dropdown --}}
+</div>
     </div>
 
     {{-- ══ DESKTOP TOP NAV (muncul saat desktop mode aktif) ══ --}}
@@ -664,13 +796,10 @@
     function applyDesktopMode(isDesktop) {
         if (isDesktop) {
             document.body.classList.add('desktop-mode');
-            document.getElementById('toggleLabel').textContent = 'Desktop ✓';
-            document.getElementById('toggleDot').style.background = '#A5D6A7';
         } else {
             document.body.classList.remove('desktop-mode');
-            document.getElementById('toggleLabel').textContent = 'Desktop';
-            document.getElementById('toggleDot').style.background = 'rgba(255,255,255,0.45)';
         }
+        // dot & toggle sync via CSS class body.desktop-mode — otomatis
     }
 
     function toggleDesktopMode() {
