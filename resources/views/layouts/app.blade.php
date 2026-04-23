@@ -129,6 +129,80 @@
         .logout-btn:active { background: rgba(255,255,255,0.25); }
 
         /* ════════════════════════════════
+           DESKTOP MODE TOGGLE BUTTON
+        ════════════════════════════════ */
+        .desktop-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255,255,255,0.14);
+            border: 1px solid rgba(255,255,255,0.28);
+            border-radius: 20px;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.92);
+            line-height: 1;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .desktop-toggle-btn:active { background: rgba(255,255,255,0.25); }
+        .toggle-icon { font-size: 13px; }
+        /* Indicator dot */
+        .toggle-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.45);
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        body.desktop-mode .toggle-dot { background: #A5D6A7; }
+
+        /* ════════════════════════════════
+           DESKTOP NAV (top, hidden by default)
+        ════════════════════════════════ */
+        .desktop-nav {
+            display: none;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        body.desktop-mode .desktop-nav { display: flex; }
+        .desktop-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 11px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.85);
+            background: rgba(255,255,255,0.10);
+            border: 1px solid rgba(255,255,255,0.18);
+            white-space: nowrap;
+            text-decoration: none;
+            transition: background 0.12s;
+        }
+        .desktop-nav-item:active { background: rgba(255,255,255,0.25); }
+        .desktop-nav-item.active {
+            background: rgba(255,255,255,0.28);
+            border-color: rgba(255,255,255,0.50);
+            color: #fff;
+        }
+        .desktop-nav-icon { font-size: 14px; }
+
+        /* Desktop nav row */
+        .header-desktop-nav-row {
+            display: none;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.15);
+        }
+        body.desktop-mode .header-desktop-nav-row { display: block; }
+
+        /* ════════════════════════════════
            FLASH MESSAGES
         ════════════════════════════════ */
         .flash-zone { padding: 10px 14px 0; }
@@ -166,9 +240,13 @@
             padding: 14px 14px;
             padding-bottom: calc(var(--nav-h) + 14px + var(--safe-bottom));
         }
+        /* Desktop mode: hapus padding bawah untuk bottom nav */
+        body.desktop-mode main {
+            padding-bottom: 20px;
+        }
 
         /* ════════════════════════════════
-           BOTTOM NAV
+           BOTTOM NAV (hidden di desktop mode)
         ════════════════════════════════ */
         .bottom-nav {
             position: fixed;
@@ -181,6 +259,8 @@
             padding-bottom: var(--safe-bottom);
             box-shadow: 0 -1px 12px rgba(46,125,50,0.08);
         }
+        body.desktop-mode .bottom-nav { display: none; }
+
         .nav-item {
             flex: 1;
             display: flex;
@@ -207,8 +287,11 @@
         .nav-item.active .nav-label { color: var(--melon-dark); }
 
         /* ════════════════════════════════
-           MORE DRAWER
+           MORE DRAWER (hidden di desktop mode)
         ════════════════════════════════ */
+        body.desktop-mode .drawer-backdrop,
+        body.desktop-mode .drawer { display: none !important; }
+
         .drawer-backdrop {
             position: fixed; inset: 0;
             background: rgba(0,0,0,0.28);
@@ -328,20 +411,70 @@
         .link-btn { background: none; border: none; font-size: 11px; color: #2563eb; text-decoration: underline; padding: 0; cursor: pointer; }
         .link-btn-sm { font-size: 10px; color: #2563eb; text-decoration: underline; cursor: pointer; font-weight: 500; }
 
-        /* desktop center */
+        /* ════════════════════════════════
+           DESKTOP CENTERING (mobile default)
+        ════════════════════════════════ */
         @media (min-width: 520px) {
-            body { background: #c8dfc8; }
-            .app-header,
-            .flash-zone,
-            main           { max-width: 480px; margin-left: auto; margin-right: auto; }
-            .bottom-nav    { max-width: 480px; left: 50%; transform: translateX(-50%); border-radius: 20px 20px 0 0; }
-            .drawer        { max-width: 480px; left: 50%; transform: translateX(-50%); }
+            body:not(.desktop-mode) { background: #c8dfc8; }
+            body:not(.desktop-mode) .app-header,
+            body:not(.desktop-mode) .flash-zone,
+            body:not(.desktop-mode) main           { max-width: 480px; margin-left: auto; margin-right: auto; }
+            body:not(.desktop-mode) .bottom-nav    { max-width: 480px; left: 50%; transform: translateX(-50%); border-radius: 20px 20px 0 0; }
+            body:not(.desktop-mode) .drawer        { max-width: 480px; left: 50%; transform: translateX(-50%); }
+        }
+
+        /* ════════════════════════════════
+           DESKTOP MODE — FULL WIDTH
+        ════════════════════════════════ */
+        body.desktop-mode {
+            background: var(--surface2);
+        }
+        body.desktop-mode .app-header,
+        body.desktop-mode .flash-zone,
+        body.desktop-mode main {
+            max-width: 100%;
+            margin-left: 0;
+            margin-right: 0;
+        }
+        body.desktop-mode .app-header {
+            padding-left: 24px;
+            padding-right: 24px;
+        }
+        body.desktop-mode .flash-zone {
+            padding-left: 24px;
+            padding-right: 24px;
+        }
+        body.desktop-mode main {
+            padding-left: 24px;
+            padding-right: 24px;
+        }
+
+        /* Wrapper konten inner */
+        .content-inner {
+            width: 100%;
+        }
+
+        /* Desktop mode: batasi lebar konten saja, bukan main */
+        body.desktop-mode .content-inner {
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
         }
     </style>
 </head>
 <body>
 
 {{-- ══ HEADER ══ --}}
+@php
+    $nav = match(true) {
+        request()->routeIs('transfer.*') => 'tf',
+        request()->routeIs('distributions.*', 'contract-dist.*')                 => 'dist',
+        request()->routeIs('do.*')                                    => 'do',
+        request()->routeIs('cashflow.*', 'transfer.*', 'external-debt.*', 'savings.*')   => 'fin',
+        default                                                                           => 'more',
+    };
+@endphp
+
 <header class="app-header">
     <div class="header-inner">
         <a href="{{ route('home') }}" class="brand">
@@ -352,6 +485,17 @@
             </div>
         </a>
         <div class="header-actions">
+            {{-- Desktop Mode Toggle Button --}}
+            <button type="button"
+                    id="desktopModeBtn"
+                    class="desktop-toggle-btn"
+                    onclick="toggleDesktopMode()"
+                    title="Toggle Mode Desktop">
+                <span class="toggle-dot" id="toggleDot"></span>
+                <span class="toggle-icon" id="toggleIcon">🖥️</span>
+                <span id="toggleLabel">Desktop</span>
+            </button>
+
             <a href="{{ route('password.form') }}" class="avatar-btn" title="Ganti Password">
                 {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
             </a>
@@ -359,6 +503,42 @@
                 @csrf
                 <button type="submit" class="logout-btn">🚪 Keluar</button>
             </form>
+        </div>
+    </div>
+
+    {{-- ══ DESKTOP TOP NAV (muncul saat desktop mode aktif) ══ --}}
+    <div class="header-desktop-nav-row">
+        <div class="desktop-nav">
+            <a href="{{ route('do.index') }}" class="desktop-nav-item {{ $nav==='do' ? 'active' : '' }}">
+                <span class="desktop-nav-icon">📦</span> DO Agen
+            </a>
+            <a href="{{ route('distributions.index') }}" class="desktop-nav-item {{ $nav==='dist' ? 'active' : '' }}">
+                <span class="desktop-nav-icon">🚚</span> Distribusi
+            </a>
+            <a href="{{ route('cashflow.index') }}" class="desktop-nav-item {{ $nav==='fin' ? 'active' : '' }}">
+                <span class="desktop-nav-icon">💸</span> Keuangan
+            </a>
+            <a href="{{ route('transfer.index') }}" class="desktop-nav-item {{ $nav==='tf' ? 'active' : '' }}">
+                <span class="desktop-nav-icon">🏦</span> Transfer
+            </a>
+            <a href="{{ route('summary.index') }}" class="desktop-nav-item {{ request()->routeIs('summary.*') ? 'active' : '' }}">
+                <span class="desktop-nav-icon">📊</span> Ringkasan
+            </a>
+            <a href="{{ route('contract-dist.index') }}" class="desktop-nav-item {{ request()->routeIs('contract-dist.*') ? 'active' : '' }}">
+                <span class="desktop-nav-icon">⭐</span> Kontrak
+            </a>
+            <a href="{{ route('savings.index') }}" class="desktop-nav-item {{ request()->routeIs('savings.*') ? 'active' : '' }}">
+                <span class="desktop-nav-icon">💰</span> Tabungan
+            </a>
+            <a href="{{ route('periods.index') }}" class="desktop-nav-item {{ request()->routeIs('periods.*') ? 'active' : '' }}">
+                <span class="desktop-nav-icon">📅</span> Periode
+            </a>
+            <a href="{{ route('master.index') }}" class="desktop-nav-item {{ request()->routeIs('master.*') ? 'active' : '' }}">
+                <span class="desktop-nav-icon">⚙️</span> Master Data
+            </a>
+            <a href="{{ route('password.form') }}" class="desktop-nav-item {{ request()->routeIs('password.*') ? 'active' : '' }}">
+                <span class="desktop-nav-icon">🔑</span> Ganti Sandi
+            </a>
         </div>
     </div>
 </header>
@@ -391,19 +571,13 @@
 </div>
 
 {{-- ══ CONTENT ══ --}}
-<main>@yield('content')</main>
+<main>
+    <div class="content-inner">
+        @yield('content')
+    </div>
+</main>
 
-{{-- ══ BOTTOM NAV ══ --}}
-@php
-    $nav = match(true) {
-        request()->routeIs('transfer.*') => 'tf',
-        request()->routeIs('distributions.*', 'contract-dist.*')                 => 'dist',
-        request()->routeIs('do.*')                                    => 'do',
-        request()->routeIs('cashflow.*', 'transfer.*', 'external-debt.*', 'savings.*')   => 'fin',
-        default                                                                           => 'more',
-    };
-@endphp
-
+{{-- ══ BOTTOM NAV (tersembunyi di desktop mode) ══ --}}
 <nav class="bottom-nav">
     <a href="{{ route('do.index') }}" class="nav-item {{ $nav==='do' ? 'active' : '' }}">
         <div class="nav-pill">📦</div>
@@ -464,9 +638,6 @@
             <a href="{{ route('summary.index') }}"            class="drawer-item"><span class="drawer-item-icon">📊</span><span class="drawer-item-label">Ringkasan</span></a>
             <a href="{{ route('contract-dist.index') }}" class="drawer-item"><span class="drawer-item-icon">⭐</span><span class="drawer-item-label">Kontrak</span></a>
             <a href="{{ route('savings.index') }}"       class="drawer-item"><span class="drawer-item-icon">💰</span><span class="drawer-item-label">Tabungan</span></a>
-            {{--  <a href="{{ route('payslip.index') }}"       class="drawer-item"><span class="drawer-item-icon">🧾</span><span class="drawer-item-label">Slip Gaji</span></a>  --}}
-            {{--  <a href="{{ route('analysis.index') }}"      class="drawer-item"><span class="drawer-item-icon">🔬</span><span class="drawer-item-label">Analisa</span></a>  --}}
-            {{--  <a href="{{ route('external-debt.index') }}" class="drawer-item"><span class="drawer-item-icon">💼</span><span class="drawer-item-label">Piutang</span></a>  --}}
             <a href="{{ route('periods.index') }}"       class="drawer-item"><span class="drawer-item-icon">📅</span><span class="drawer-item-label">Periode</span></a>
         </div>
 
@@ -485,6 +656,43 @@
         </form>
     </div>
 </div>
+
+{{-- ══ DESKTOP MODE SCRIPT ══ --}}
+<script>
+    var STORAGE_KEY = 'rekap_gas_desktop_mode';
+
+    function applyDesktopMode(isDesktop) {
+        if (isDesktop) {
+            document.body.classList.add('desktop-mode');
+            document.getElementById('toggleLabel').textContent = 'Desktop ✓';
+            document.getElementById('toggleDot').style.background = '#A5D6A7';
+        } else {
+            document.body.classList.remove('desktop-mode');
+            document.getElementById('toggleLabel').textContent = 'Desktop';
+            document.getElementById('toggleDot').style.background = 'rgba(255,255,255,0.45)';
+        }
+    }
+
+    function toggleDesktopMode() {
+        var isCurrentlyDesktop = document.body.classList.contains('desktop-mode');
+        var newState = !isCurrentlyDesktop;
+        try {
+            localStorage.setItem(STORAGE_KEY, newState ? '1' : '0');
+        } catch(e) {}
+        applyDesktopMode(newState);
+    }
+
+    // Baca preferensi dari localStorage saat halaman dimuat
+    (function() {
+        var saved;
+        try { saved = localStorage.getItem(STORAGE_KEY); } catch(e) {}
+        // Default desktop mode aktif jika layar >= 1024px dan belum pernah disimpan
+        if (saved === null) {
+            saved = window.innerWidth >= 1024 ? '1' : '0';
+        }
+        applyDesktopMode(saved === '1');
+    })();
+</script>
 
 @stack('scripts')
 </body>
