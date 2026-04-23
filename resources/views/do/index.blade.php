@@ -372,12 +372,12 @@
                     @endforeach
 
                     {{-- Baris Total --}}
-                    <tr style="border-top:1px solid var(--border)">
+                    <tr class="total-row">
                         <td class="bold">Total</td>
-                        <td class="r bold" style="color:#378ADD">{{ number_format($grandTotal) }}</td>
-                        <td class="r bold" style="color:#7F77DD">{{ number_format($proyeksiRealistis) }}</td>
+                        <td class="r bold">{{ number_format($grandTotal) }}</td>
+                        <td class="r bold">{{ number_format($proyeksiRealistis) }}</td>
                         @if($prevTotal > 0)
-                        <td class="r" style="color:var(--text3)">{{ number_format($prevTotal) }}</td>
+                        <td class="r">{{ number_format($prevTotal) }}</td>
                         @endif
                         <td>
                             @if($vsLalu !== null)
@@ -696,6 +696,18 @@
                 </tr>
                 @endforelse
             </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="2" class="bold">Total</td>
+                    <td class="r bold">{{ number_format($dos->sum('qty')) }}</td>
+                    <td class="r"></td>
+                    <td class="r bold">Rp {{ number_format($dos->sum(fn($d) => $d->qty * $d->price_per_unit)) }}</td>
+                    <td class="r bold">Rp {{ number_format($dos->sum(fn($d) => $d->paid_amount + $d->transfers->sum('surplus'))) }}</td>
+                    <td class="r bold">Rp {{ number_format($dos->sum(fn($d) => $d->transfers->sum('surplus'))) }}</td>
+                    <td></td>
+                    @if($period->status === 'open') <td></td> @endif
+                </tr>
+            </tfoot>
         </table>
     </div>
 </div>
@@ -768,6 +780,19 @@
                 </tr>
                 @endforeach
             </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="2" class="bold">Total</td>
+                    <td class="r bold">{{ number_format($carryoverDOs->sum('qty')) }}</td>
+                    <td class="r bold">Rp {{ number_format($carryoverDOs->sum(fn($d) => $d->qty * $d->price_per_unit)) }}</td>
+                    <td class="r bold">Rp {{ number_format($carryoverDOs->sum(fn($d) => $d->paid_amount + $d->transfers->sum('surplus'))) }}</td>
+                    <td class="r bold">Rp {{ number_format($carryoverDOs->sum(fn($d) => $d->transfers->sum('surplus'))) }}</td>
+                    <td class="r bold">Rp {{ number_format($carryoverDOs->sum(fn($d) => $d->remainingAmount())) }}</td>
+                    <td></td>
+                    @if($period->status === 'open') <td></td> @endif
+                </tr>
+            </tfoot>
+
         </table>
     </div>
 </div>

@@ -461,6 +461,13 @@
             margin-right: auto;
         }
 
+        tfoot td {
+            font-weight: 600;
+            border-top: 1.5px solid var(--border-color); /* sesuaikan dengan variabel CSS project kamu */
+            background: var(--surface-muted);
+        }
+
+
         /* ════════════════════════════════
         AVATAR DROPDOWN
         ════════════════════════════════ */

@@ -293,18 +293,16 @@
                             <td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">Belum ada setoran.</td>
                         </tr>
                         @endforelse
-                    </tbody>
-                    <tfoot>
                         <tr class="total-row">
                             <td colspan="2" class="bold">TOTAL</td>
                             <td class="r bold">Rp {{ number_format($totalNominal) }}</td>
-                            <td class="r bold" style="color:#dc2626">
+                            <td class="r bold">
                                 {{ $totalAdmin > 0 ? 'Rp ' . number_format($totalAdmin) : '—' }}
                             </td>
                             <td class="r bold">Rp {{ number_format($totalBersih) }}</td>
                             <td colspan="{{ $period->status === 'open' ? 2 : 1 }}"></td>
                         </tr>
-                    </tfoot>
+                    </tbody>
                 </table>
             </div>
         </div>
