@@ -861,19 +861,41 @@ class CashflowController extends Controller
     {
         $n = count($series);
         if ($n < 2) {
-            return ['l' => $series[0] ?? 0.0, 't' => 0.0, 'alpha' => $alpha, 'beta' => $beta, 'sse' => 0.0];
+            return [
+                'l' => $series[0] ?? 0.0,
+                't' => 0.0,
+                'alpha' => $alpha,
+                'beta' => $beta,
+                'sse' => 0.0
+            ];
         }
 
         $L = $series[0];
         $T = $series[1] - $series[0];
         $sse = 0.0;
 
+        // Floor: level tidak boleh di bawah 40% rata-rata series
+        $seriesMean = array_sum($series) / $n;
+        $levelFloor = max(0.0, $seriesMean * 0.40);
+
         for ($i = 1; $i < $n; $i++) {
             $yHat = $L + $T;
-            $sse += ($series[$i] - $yHat) ** 2;
+            $sse  += ($series[$i] - $yHat) ** 2;
+
             $Lprev = $L;
             $L = $alpha * $series[$i] + (1 - $alpha) * ($L + $T);
+
+            // ── PATCH: floor guard ──
+            $L = max($L, $levelFloor);
+
             $T = $beta  * ($L - $Lprev) + (1 - $beta) * $T;
+
+            // ── PATCH: dampen negative trend ──
+            // Tren negatif kuat hampir pasti lebih lembut dari yang terlihat
+            // di data 1 bulan yang fluktuatif. Kurangi 30%.
+            if ($T < 0) {
+                $T *= 0.70;
+            }
         }
 
         return compact('L', 'T', 'alpha', 'beta', 'sse') + ['l' => $L, 't' => $T];
@@ -909,5 +931,175 @@ class CashflowController extends Controller
         if ($n < 2) return 0.0;
         $mean = array_sum($arr) / $n;
         return sqrt(array_sum(array_map(fn($v) => ($v - $mean) ** 2, $arr)) / ($n - 1));
+    }
+
+    private function calcDowFactors(
+        int $today,
+        int $year,
+        int $month,
+        array $marginByDay
+    ): array {
+        // Kumpulkan margin per day-of-week (0=Sun, 1=Mon, ..., 6=Sat)
+        $dowTotals = array_fill(0, 7, 0.0);
+        $dowCounts = array_fill(0, 7, 0);
+
+        for ($d = 1; $d <= $today; $d++) {
+            $margin = $marginByDay[$d]['margin'] ?? 0;
+            if ($margin > 0) {
+                $dow = (int) Carbon::create($year, $month, $d)->dayOfWeek;
+                $dowTotals[$dow] += $margin;
+                $dowCounts[$dow]++;
+            }
+        }
+
+        // Rata-rata per DOW
+        $dowAvg = [];
+        $validAvgs = [];
+        for ($dow = 0; $dow < 7; $dow++) {
+            $avg = $dowCounts[$dow] > 0 ? $dowTotals[$dow] / $dowCounts[$dow] : null;
+            $dowAvg[$dow] = $avg;
+            if ($avg !== null) $validAvgs[] = $avg;
+        }
+
+        if (empty($validAvgs)) {
+            // Tidak cukup data — semua faktor = 1.0
+            return array_fill(0, 7, 1.0);
+        }
+
+        $overallAvg = array_sum($validAvgs) / count($validAvgs);
+        if ($overallAvg <= 0) return array_fill(0, 7, 1.0);
+
+        // Faktor relatif: DOW rata-rata / overall rata-rata
+        // Clamp antara 0.5–1.8 supaya tidak ekstrem
+        $factors = [];
+        for ($dow = 0; $dow < 7; $dow++) {
+            if ($dowAvg[$dow] !== null) {
+                $factors[$dow] = max(0.5, min(1.8, $dowAvg[$dow] / $overallAvg));
+            } else {
+                // Hari yang belum pernah ada data → pakai 1.0
+                $factors[$dow] = 1.0;
+            }
+        }
+
+        return $factors;
+    }
+
+    private function projectWithDow(
+        int $today,
+        int $daysInMonth,
+        float $marginRate,
+        float $conserv,
+        array $dowFactors,
+        int $year,
+        int $month
+    ): int {
+        $total = 0.0;
+        for ($d = $today + 1; $d <= $daysInMonth; $d++) {
+            $dow = (int) Carbon::create($year, $month, $d)->dayOfWeek;
+            $factor = $dowFactors[$dow] ?? 1.0;
+            $total += $marginRate * $conserv * $factor;
+        }
+        return (int) round($total);
+    }
+
+    // private function runDES(array $series, float $alpha, float $beta): array
+    // {
+    //     $n = count($series);
+    //     if ($n < 2) {
+    //         return [
+    //             'l' => $series[0] ?? 0.0,
+    //             't' => 0.0,
+    //             'alpha' => $alpha,
+    //             'beta' => $beta,
+    //             'sse' => 0.0
+    //         ];
+    //     }
+
+    //     $L = $series[0];
+    //     $T = $series[1] - $series[0];
+    //     $sse = 0.0;
+
+    //     // Floor: level tidak boleh di bawah 40% rata-rata series
+    //     $seriesMean = array_sum($series) / $n;
+    //     $levelFloor = max(0.0, $seriesMean * 0.40);
+
+    //     for ($i = 1; $i < $n; $i++) {
+    //         $yHat = $L + $T;
+    //         $sse  += ($series[$i] - $yHat) ** 2;
+
+    //         $Lprev = $L;
+    //         $L = $alpha * $series[$i] + (1 - $alpha) * ($L + $T);
+
+    //         // ── PATCH: floor guard ──
+    //         $L = max($L, $levelFloor);
+
+    //         $T = $beta  * ($L - $Lprev) + (1 - $beta) * $T;
+
+    //         // ── PATCH: dampen negative trend ──
+    //         // Tren negatif kuat hampir pasti lebih lembut dari yang terlihat
+    //         // di data 1 bulan yang fluktuatif. Kurangi 30%.
+    //         if ($T < 0) {
+    //             $T *= 0.70;
+    //         }
+    //     }
+
+    //     return compact('L', 'T', 'alpha', 'beta', 'sse') + ['l' => $L, 't' => $T];
+    // }
+
+    private function calcAdaptiveConsensus(array $predictions, array $confidences): array
+    {
+        // Filter null (MC belum dijalankan)
+        $valid = array_filter($predictions, fn($v) => $v !== null);
+        $confs = array_filter($confidences, fn($v) => $v !== null);
+
+        if (empty($valid)) return ['consensus' => 0, 'confidence' => 0, 'spreadPct' => 0, 'note' => ''];
+
+        // Weighted average dasar
+        $totalWeight = array_sum($confs);
+        if ($totalWeight <= 0) $totalWeight = count($confs);
+
+        $weighted = 0.0;
+        foreach ($valid as $method => $val) {
+            $w = $confs[$method] ?? (100 / count($valid));
+            $weighted += $val * $w;
+        }
+        $weighted /= $totalWeight;
+
+        // Spread analysis
+        $vals     = array_values($valid);
+        $maxVal   = max($vals);
+        $minVal   = min($vals);
+        $spread   = $maxVal - $minVal;
+        $absMedian = abs($weighted);
+        $spreadPct = $absMedian > 0 ? round($spread / $absMedian * 100) : 999;
+
+        // Kalau spread lebar, geser konsensus ke arah lebih konservatif
+        // (rata-rata weighted dan nilai minimum)
+        $conservative = ($weighted + $minVal) / 2;
+
+        $finalConsensus = $weighted;
+        $note = '';
+        if ($spreadPct > 50) {
+            // Spread sangat lebar — blend ke konservatif 40%
+            $finalConsensus = $weighted * 0.60 + $conservative * 0.40;
+            $note = "Spread lebar ({$spreadPct}%) — konsensus digeser konservatif";
+        } elseif ($spreadPct > 25) {
+            $finalConsensus = $weighted * 0.80 + $conservative * 0.20;
+            $note = "Spread sedang ({$spreadPct}%) — sedikit konservatif";
+        } else {
+            $note = "Spread rendah ({$spreadPct}%) — metode sepakat";
+        }
+
+        // Confidence agregat juga diturunkan kalau spread lebar
+        $baseConf  = array_sum($confs) / count($confs);
+        $confPenalty = $spreadPct > 50 ? 15 : ($spreadPct > 25 ? 8 : 0);
+        $finalConf = max(20, min(90, (int) round($baseConf - $confPenalty)));
+
+        return [
+            'consensus'   => (int) round($finalConsensus),
+            'confidence'  => $finalConf,
+            'spreadPct'   => $spreadPct,
+            'note'        => $note,
+        ];
     }
 }
