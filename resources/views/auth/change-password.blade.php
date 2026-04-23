@@ -1,40 +1,50 @@
 @extends('layouts.app')
 @section('title','Ganti Password')
-@section('content')
-<div class="mt-4 max-w-md">
-    <h1 class="text-xl font-bold mb-4">🔒 Ganti Password</h1>
 
-    <form method="POST" action="{{ route('password.change') }}"
-          class="bg-white rounded-lg shadow p-6 space-y-4">
+@section('content')
+<style>
+    .page-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text1);
+        margin-bottom: 12px;
+    }
+
+</style>
+
+<div class="page-title">🔒 Ganti Password</div>
+
+<div class="s-card" style="max-width:400px;">
+    <form method="POST" action="{{ route('password.change') }}">
         @csrf
 
-        <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Password Saat Ini</label>
-            <input type="password" name="current_password"
-                   class="w-full border rounded px-3 py-2 @error('current_password') border-red-400 @enderror"
-                   required>
-            @error('current_password')
-                <p class="text-red-600 text-xs mt-1">{{ $message }}</p>
-            @enderror
-        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;padding:14px;">
 
-        <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Password Baru</label>
-            <input type="password" name="new_password"
-                   class="w-full border rounded px-3 py-2"
-                   placeholder="Minimal 6 karakter" required>
-        </div>
+            <div>
+                <label class="field-label">Password Saat Ini</label>
+                <input type="password" name="current_password" class="field-input @error('current_password') is-error @enderror" required>
+                @error('current_password')
+                <div style="font-size:11px;color:var(--danger,#dc2626);margin-top:4px;">{{ $message }}</div>
+                @enderror
+            </div>
 
-        <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Konfirmasi Password Baru</label>
-            <input type="password" name="new_password_confirmation"
-                   class="w-full border rounded px-3 py-2" required>
-        </div>
+            <div>
+                <label class="field-label">Password Baru</label>
+                <input type="password" name="new_password" class="field-input" placeholder="Minimal 6 karakter" required>
+            </div>
 
-        <button type="submit"
-                class="bg-orange-600 text-white px-6 py-2 rounded hover:bg-orange-700 font-medium w-full">
-            Simpan Password Baru
-        </button>
+            <div>
+                <label class="field-label">Konfirmasi Password Baru</label>
+                <input type="password" name="new_password_confirmation" class="field-input" required>
+            </div>
+
+            <div style="padding-top:4px;">
+                <button type="submit" class="btn-primary" style="width:100%;padding:10px;font-size:13px;">
+                    Simpan Password Baru
+                </button>
+            </div>
+
+        </div>
     </form>
 </div>
 @endsection
