@@ -15,21 +15,51 @@ class SavingController extends Controller
         $period = Period::findOrFail($periodId);
         $periods = Period::orderByDesc('year')->orderByDesc('month')->get();
 
-        $savings = Saving::with('accountTransfer')->where('period_id', $period->id)->orderBy('entry_date')->orderBy('id')->get();
+        // Eager load accountTransfer beserta deliveryOrders-nya
+        $savings = Saving::with([
+            'accountTransfer.deliveryOrders',
+        ])
+            ->where('period_id', $period->id)
+            ->orderBy('entry_date')
+            ->orderBy('id')
+            ->get();
 
-        $totalIn = $savings->where('type', 'in')->sum('amount');
+        // Sort: yang punya DO → urutkan by tanggal DO terlama; manual → by entry_date
+        $savings = $savings->sortBy(function ($s) {
+            if ($s->accountTransfer && $s->accountTransfer->deliveryOrders->isNotEmpty()) {
+                return $s->accountTransfer->deliveryOrders->min('do_date');
+            }
+            return $s->entry_date;
+        })->values();
+
+        $totalIn  = $savings->where('type', 'in')->sum('amount');
         $totalOut = $savings->where('type', 'out')->sum('amount');
-        $balance = $period->opening_surplus + $totalIn - $totalOut;
+        $balance  = $period->opening_surplus + $totalIn - $totalOut;
 
         // Running balance per row
         $running = $period->opening_surplus;
         $rows = [];
         foreach ($savings as $s) {
             $running += $s->type === 'in' ? $s->amount : -$s->amount;
-            $rows[] = ['saving' => $s, 'balance' => $running];
+
+            // Ambil info DO & transfer jika ada
+            $doList        = $s->accountTransfer?->deliveryOrders ?? collect();
+            $transferDate  = $s->accountTransfer?->transfer_date ?? null;
+            $earliestDo    = $doList->isNotEmpty() ? $doList->sortBy('do_date')->first() : null;
+
+            $rows[] = [
+                'saving'       => $s,
+                'balance'      => $running,
+                'transfer_date'=> $transferDate,
+                'do_list'      => $doList,
+                'earliest_do'  => $earliestDo,
+            ];
         }
 
-        return view('savings.index', compact('period', 'periods', 'savings', 'rows', 'totalIn', 'totalOut', 'balance'));
+        return view('savings.index', compact(
+            'period', 'periods', 'savings', 'rows',
+            'totalIn', 'totalOut', 'balance'
+        ));
     }
 
     /** Input manual tabungan masuk/keluar */

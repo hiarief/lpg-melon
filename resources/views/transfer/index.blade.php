@@ -312,15 +312,28 @@
          TAB: TRANSFER
     ══════════════════════════════════════════════════════════════ --}}
     <div x-show="tabActive==='transfer'" x-cloak
-         x-data="{ mode:'auto', allocations:[], addAlloc(){ this.allocations.push({do_id:'',amount:''}) }, removeAlloc(i){ this.allocations.splice(i,1) } }">
+        x-data="{
+            allocations: [{ do_id: '', amount: '' }],
+            addAlloc()    { this.allocations.push({ do_id: '', amount: '' }) },
+            removeAlloc(i){ if (this.allocations.length > 1) this.allocations.splice(i, 1) },
+            validate() {
+                const filled = this.allocations.filter(a => a.do_id !== '' && a.amount !== '' && Number(a.amount) > 0);
+                if (filled.length === 0) {
+                    alert('Pilih minimal satu DO tujuan dan isi nominalnya sebelum menyimpan.');
+                    return false;
+                }
+                return true;
+            }
+        }">
 
         @if($period->status === 'open')
         <div class="s-card">
             <div class="s-card-header">+ Transfer Rekening Penampung → Rekening Utama</div>
             <div style="padding:12px 14px">
-                <form method="POST" action="{{ route('transfer.account.store') }}">
+                <form method="POST" action="{{ route('transfer.account.store') }}" @submit.prevent="validate() && $el.submit()">
                     @csrf
                     <input type="hidden" name="period_id" value="{{ $period->id }}">
+                    <input type="hidden" name="alloc_mode" value="manual">
 
                     {{-- Tabel piutang DO --}}
                     @if($allUnpaidDOs->count() > 0)
@@ -374,7 +387,7 @@
                     @endif
 
                     {{-- Input transfer --}}
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
                         <div>
                             <label class="field-label">Tanggal Transfer</label>
                             <input type="date" name="transfer_date" value="{{ date('Y-m-d') }}" class="field-input" required>
@@ -389,51 +402,60 @@
                         </div>
                     </div>
 
-                    {{-- Pilihan mode alokasi --}}
-                    <div style="margin-bottom:12px">
-                        <label class="field-label">Cara Alokasi ke DO</label>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                            @foreach([
-                                ['auto',   '⚡ Otomatis', 'Lunasi DO terlama dulu, sisa jadi surplus'],
-                                ['manual', '🔧 Manual',   'Pilih sendiri DO mana yang dilunasi'],
-                            ] as [$val, $title, $desc])
-                            <label style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:8px;cursor:pointer"
-                                   :style="mode==='{{ $val }}'?'border:1px solid var(--melon-mid);background:var(--melon-50)':'border:0.5px solid var(--border);background:var(--surface)'">
-                                <input type="radio" name="alloc_mode" value="{{ $val }}" x-model="mode" style="accent-color:var(--melon);margin-top:2px">
-                                <div>
-                                    <div style="font-size:12px;font-weight:600;color:var(--text1)">{{ $title }}</div>
-                                    <div style="font-size:10px;color:var(--text3)">{{ $desc }}</div>
-                                </div>
-                            </label>
-                            @endforeach
-                        </div>
-                    </div>
-
-                    {{-- Alokasi manual --}}
-                    <div x-show="mode==='manual'" x-cloak style="margin-bottom:12px">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                            <span style="font-size:11px;font-weight:600;color:var(--text2)">Pilih DO yang dilunasi:</span>
-                            <button type="button" @click="addAlloc()" class="btn-secondary btn-sm">+ Tambah DO</button>
-                        </div>
-                        <template x-for="(alloc, i) in allocations" :key="i">
-                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-                                <select :name="'do_allocations['+i+'][do_id]'" x-model="alloc.do_id" class="field-select" style="flex:1" required>
-                                    <option value="">-- Pilih DO --</option>
-                                    @foreach($allUnpaidDOs as $udo)
-                                    <option value="{{ $udo->id }}">
-                                        {{ $udo->outlet->name }} | {{ $udo->do_date->format('d/m') }} | Sisa Rp {{ number_format($udo->remainingAmount()) }}
-                                    </option>
-                                    @endforeach
-                                </select>
-                                <input type="number" :name="'do_allocations['+i+'][amount]'" x-model="alloc.amount"
-                                       placeholder="Nominal" min="1" class="field-input" style="width:130px" required>
-                                <button type="button" @click="removeAlloc(i)"
-                                        style="background:none;border:none;font-size:18px;color:#ef4444;cursor:pointer;flex-shrink:0">×</button>
+                    {{-- Alokasi DO manual --}}
+                    <div style="border:0.5px solid #bfdbfe;border-radius:8px;background:#eff6ff;padding:12px;margin-bottom:14px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                            <div>
+                                <span style="font-size:12px;font-weight:700;color:#1e40af;">🔧 Pilih DO yang Dilunasi</span>
+                                <div style="font-size:10px;color:#3b82f6;margin-top:2px;">Wajib pilih minimal satu DO</div>
                             </div>
-                        </template>
-                        <p x-show="allocations.length === 0" style="font-size:11px;color:var(--text3);font-style:italic">
-                            Klik "+ Tambah DO" untuk alokasi manual.
-                        </p>
+                            <button type="button" @click="addAlloc()"
+                                    style="background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;">
+                                + Tambah DO
+                            </button>
+                        </div>
+
+                        <div style="display:flex;flex-direction:column;gap:8px;">
+                            <template x-for="(alloc, i) in allocations" :key="i">
+                                <div style="display:flex;align-items:center;gap:8px;background:#fff;border:0.5px solid #bfdbfe;border-radius:6px;padding:8px;">
+                                    <span x-text="i+1" style="font-size:10px;font-weight:700;color:#1e40af;min-width:14px;text-align:center;"></span>
+                                    <select :name="'do_allocations['+i+'][do_id]'"
+                                            x-model="alloc.do_id"
+                                            class="field-select"
+                                            style="flex:1;font-size:12px;"
+                                            :required="true">
+                                        <option value="">— Pilih DO —</option>
+                                        @foreach($allUnpaidDOs as $udo)
+                                        <option value="{{ $udo->id }}">
+                                            {{ $udo->outlet->name }} · {{ $udo->do_date->format('d/m') }} · Sisa Rp {{ number_format($udo->remainingAmount()) }}
+                                        </option>
+                                        @endforeach
+                                    </select>
+                                    <input type="number"
+                                        :name="'do_allocations['+i+'][amount]'"
+                                        x-model="alloc.amount"
+                                        placeholder="Nominal (Rp)"
+                                        min="1"
+                                        class="field-input"
+                                        style="width:130px;font-size:12px;"
+                                        :required="true">
+                                    <button type="button" @click="removeAlloc(i)"
+                                            :disabled="allocations.length === 1"
+                                            style="background:none;border:none;font-size:18px;line-height:1;cursor:pointer;flex-shrink:0;padding:0;"
+                                            :style="allocations.length === 1 ? 'color:#d1d5db;cursor:not-allowed' : 'color:#ef4444'">×</button>
+                                </div>
+                            </template>
+                        </div>
+
+                        {{-- Ringkasan total alokasi --}}
+                        <div style="margin-top:10px;padding-top:8px;border-top:0.5px solid #bfdbfe;display:flex;justify-content:space-between;align-items:center;">
+                            <span style="font-size:10px;color:#1e40af;">
+                                Total dialokasikan:
+                            </span>
+                            <span style="font-size:12px;font-weight:700;color:#1d4ed8;"
+                                x-text="'Rp ' + allocations.reduce((s,a) => s + (Number(a.amount)||0), 0).toLocaleString('id')">
+                            </span>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn-primary">💾 Simpan Transfer & Perbarui Status DO</button>

@@ -472,7 +472,9 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
         <div class="col">
             <div class="card" style="padding:12px;margin-top:10px">
                 <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:8px;">Qty per customer (tab)</div>
-                <div style="position:relative;height:120px;"><canvas id="cCustBlade"></canvas></div>
+                <div style="position:relative;height:{{ max(120, $custBarNames->count() * 28) }}px;">
+                    <canvas id="cCustBlade"></canvas>
+                </div>
             </div>
         </div>
         <div class="col">
@@ -1117,20 +1119,87 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
     }
 
     /* ════════════════════════════════
-       4. BAR CUSTOMER QTY
+    4. BAR CUSTOMER QTY
     ════════════════════════════════ */
     if (document.getElementById('cCustBlade') && custNames.length) {
+        const maxQty  = Math.max(...custQty);
+        const useLog  = maxQty / Math.min(...custQty.filter(v => v > 0)) > 5;
+
         new Chart(document.getElementById('cCustBlade'), {
             type: 'bar',
             data: {
                 labels: custNames.map(n => n.split(' ').slice(0, 2).join(' ')),
-                datasets: [{ label: 'Tabung', data: custQty,
-                    backgroundColor: custTypes.map(t => t === 'contract' ? '#d9770699' : BLUE + '99'), borderRadius: 3 }],
+                datasets: [{
+                    label: 'Tabung',
+                    data: custQty,
+                    backgroundColor: custQty.map((q, i) => {
+                        const ratio = q / maxQty;
+                        if (custTypes[i] === 'contract') return '#d9770699';
+                        if (ratio >= 0.7) return '#1d4ed8cc';
+                        if (ratio >= 0.4) return '#3b82f6bb';
+                        if (ratio >= 0.2) return '#60a5fa99';
+                        return '#93c5fd88';
+                    }),
+                    borderRadius: 4,
+                    borderSkipped: false,
+                }],
             },
             options: {
-                responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-                plugins: { legend: { display: false } },
-                scales: { x: { grid: { color: GRAY }, ticks: TICK }, y: { grid: { display: false }, ticks: { ...TICK, font: { size: 9 } } } },
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                const pct = maxQty > 0 ? ((ctx.parsed.x / maxQty) * 100).toFixed(1) : 0;
+                                return `${ctx.parsed.x.toLocaleString('id')} tab (${pct}% dari terbanyak)`;
+                            }
+                        }
+                    },
+                    // label nilai langsung di bar
+                    datalabels: false,
+                },
+                scales: {
+                    x: {
+                        type: useLog ? 'logarithmic' : 'linear',
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: {
+                            ...TICK,
+                            callback: v => v >= 1000 ? (v/1000).toFixed(v%1000===0?0:1)+'k' : v
+                        },
+                        title: {
+                            display: useLog,
+                            text: useLog ? 'skala log' : '',
+                            color: '#9CA3AF',
+                            font: { size: 9 }
+                        }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { ...TICK, font: { size: 9 } }
+                    },
+                },
+                // tampilkan nilai di ujung bar via afterDraw plugin
+                animation: {
+                    onComplete(ctx) {
+                        const chart = ctx.chart;
+                        const { ctx: c, data } = chart;
+                        c.save();
+                        c.font = '600 9px sans-serif';
+                        c.fillStyle = '#374151';
+                        c.textBaseline = 'middle';
+                        chart.getDatasetMeta(0).data.forEach((bar, i) => {
+                            const val = data.datasets[0].data[i];
+                            const x   = bar.x + 4;
+                            const y   = bar.y;
+                            const pct = maxQty > 0 ? ((val / maxQty) * 100).toFixed(0) : 0;
+                            c.fillText(`${val.toLocaleString('id')} (${pct}%)`, x, y);
+                        });
+                        c.restore();
+                    }
+                }
             },
         });
     }
