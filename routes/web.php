@@ -73,6 +73,7 @@ Route::middleware('auth')->group(function () {
         ->name('distributions.')
         ->group(function () {
             Route::get('/', [DistributionController::class, 'index'])->name('index');
+            Route::get('/compare', [DistributionController::class, 'compare'])->name('compare');
             Route::get('/create', [DistributionController::class, 'create'])->name('create');
             Route::post('/', [DistributionController::class, 'store'])->name('store');
             Route::post('/bulk', [DistributionController::class, 'bulkStore'])->name('bulk-store');
@@ -90,6 +91,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/', [CashflowController::class, 'store'])->name('store');
             Route::put('/{expense}', [CashflowController::class, 'update'])->name('update');
             Route::delete('/{expense}', [CashflowController::class, 'destroy'])->name('destroy');
+            Route::post('/bulk', [CashflowController::class, 'bulkStore'])->name('bulk-store');
         });
 
     // ─── TRANSFER ─────────────────────────────────────────────────────────────

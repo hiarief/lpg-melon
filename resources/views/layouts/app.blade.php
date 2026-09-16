@@ -456,7 +456,7 @@
 
         /* Desktop mode: batasi lebar konten saja, bukan main */
         body.desktop-mode .content-inner {
-            max-width: 1120px;
+            max-width: 1220px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -653,6 +653,9 @@
             </a>
             <a href="{{ route('distributions.index') }}" class="desktop-nav-item {{ $nav==='dist' ? 'active' : '' }}">
                 <span class="desktop-nav-icon">🚚</span> Distribusi
+            </a>
+            <a href="{{ route('distributions.compare') }}" class="desktop-nav-item {{ request()->routeIs('distributions.compare') ? 'active' : '' }}">
+                <span class="desktop-nav-icon">📈</span> Analisis Periode
             </a>
             <a href="{{ route('cashflow.index') }}" class="desktop-nav-item {{ $nav==='fin' ? 'active' : '' }}">
                 <span class="desktop-nav-icon">💸</span> Keuangan

@@ -217,6 +217,35 @@ class CashflowController extends Controller
         return back()->with('success', 'Pengeluaran disimpan.');
     }
 
+    public function bulkStore(Request $request)
+    {
+        $validated = $request->validate([
+            'period_id'          => 'required|exists:periods,id',
+            'expense_date'       => 'required|date',
+            'rows'               => 'required|array|min:1',
+            'rows.*.category'    => 'required|in:' . implode(',', array_keys(DailyExpense::$categoryLabels)),
+            'rows.*.amount'      => 'required|integer|min:1',
+            'rows.*.description' => 'nullable|string|max:255',
+        ]);
+
+        $period = Period::findOrFail($validated['period_id']);
+        abort_if($period->status === 'closed', 403, 'Periode sudah ditutup.');
+
+        foreach ($validated['rows'] as $row) {
+            DailyExpense::create([
+                'period_id'    => $validated['period_id'],
+                'expense_date' => $validated['expense_date'],
+                'category'     => $row['category'],
+                'amount'       => $row['amount'],
+                'description'  => $row['description'] ?? null,
+            ]);
+        }
+
+        return redirect()
+            ->route('cashflow.index', ['period_id' => $validated['period_id']])
+            ->with('success', count($validated['rows']) . ' pengeluaran berhasil disimpan.');
+    }
+
     public function update(Request $request, DailyExpense $expense)
     {
         $validated = $request->validate([

@@ -8,12 +8,16 @@ use App\Models\Customer;
 use App\Models\DeliveryOrder;
 use App\Models\Distribution;
 use App\Models\Period;
+use App\Models\Saving;
+use App\Services\CashflowSummaryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
 class DistributionController extends Controller
 {
+    public function __construct(private CashflowSummaryService $cashflowSummary) {}
     const BASE_PRICE = 16000;
+    const HPP_PER_TABUNG = 16_000;
     // ──────────────────────────────────────────────────────────────
     // PUBLIC ACTIONS
     // ──────────────────────────────────────────────────────────────
@@ -161,6 +165,207 @@ class DistributionController extends Controller
         return redirect()
             ->route('distributions.index', ['period_id' => $periodId])
             ->with('success', 'Distribusi dihapus.');
+    }
+
+    public function compare()
+    {
+        $periods = Period::orderBy('year')->orderBy('month')->get();
+        $customers = Customer::orderBy('name')->get(); // semua customer (aktif/nonaktif) agar histori periode lama tetap terhitung
+
+        $rows = $periods->map(function ($period) use ($customers) {
+            $distributions = Distribution::where('period_id', $period->id)
+                ->orderBy('dist_date')
+                ->get();
+
+            $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $period->month, $period->year);
+            $totalDoQty  = $this->getTotalDoQty($period);
+
+            $grid           = $this->buildGrid($distributions);
+            $customerTotals = $this->buildCustomerTotals($customers, $distributions);
+            $chartData      = $this->buildDailyChartData($grid, $daysInMonth);
+            $s              = $this->buildSummaryData($customerTotals, $chartData, $daysInMonth);
+            $cf = $this->cashflowSummary->forPeriod($period);
+
+            // ── Saving / Surplus ──
+            $savings   = Saving::where('period_id', $period->id)->get();
+            $savingIn  = (int) $savings->where('type', 'in')->sum('amount');
+            $savingOut = (int) $savings->where('type', 'out')->sum('amount');
+            $savingOpening = (int) $period->opening_surplus;
+            $savingBalance = $savingOpening + $savingIn - $savingOut;
+
+             // ── Delivery Order (baru) ──
+            $doReceivedQty = (int) DeliveryOrder::where('period_id', $period->id)
+                ->where(fn ($q) => $q->whereNull('notes')->orWhere('notes', 'not like', '%Carry-over%'))
+                ->sum('qty');
+
+            $doCarryOverQty = (int) DeliveryOrder::where('period_id', $period->id)
+                ->where('notes', 'like', '%Carry-over%')
+                ->sum('qty');
+
+            $doTotalQty     = $doReceivedQty + $doCarryOverQty;
+            $doDistributed  = $s['allQty']; // total tabung terdistribusi (sudah ada)
+            $doSisaStok     = $period->opening_stock + $doTotalQty - $doDistributed;
+            $doUtilisasi    = $doTotalQty > 0 ? round($doDistributed / $doTotalQty * 100, 1) : 0.0;
+
+            // ── Rekonsiliasi & Analisis (baru) ──
+            $profitBersih       = $s['allMargin'] - $cf['totalExpense'] - $cf['totalAdminFees'];
+            $totalUangDipegang  = $cf['netKas'] + $cf['finalBankBal'] + $savingBalance;
+            $nilaiStokAtCost    = $doSisaStok * self::HPP_PER_TABUNG; // ganti konstanta sesuai punya kamu
+            $totalKekayaan      = $totalUangDipegang + $s['piutang'] + $nilaiStokAtCost;
+
+            // Cross-check: harus 0 kalau data konsisten (sumber sama, jalur beda)
+            $selisihIncome = $s['allPaid']   - $cf['totalIncome'];
+            $selisihMargin = $s['allMargin'] - $cf['totalMargin'];
+            $selisihDoQty  = $totalDoQty     - $doReceivedQty;
+
+            return [
+                'period_id'    => $period->id,
+                'label'        => $period->label,
+                'status'       => $period->status,
+                'allQty'       => $s['allQty'],
+                'allVal'       => $s['allVal'],
+                'allPaid'      => $s['allPaid'],
+                'piutang'      => $s['piutang'],
+                'allMargin'    => $s['allMargin'],
+                'avgTabHar'    => $s['avgTabHar'],
+                'activeDays'   => $s['activeDays'],
+                'daysInMonth'  => $daysInMonth,
+                'rasioLunas'   => $s['rasioLunas'],
+                'avgHargaC'    => $s['avgHargaC'],
+                'totalDoQty'   => $totalDoQty,
+                'openingStock' => $period->opening_stock,
+                'stokTersedia' => $period->opening_stock + $totalDoQty - $s['allQty'],
+
+                // ── cashflow ──
+                'cfOpeningCash'  => $cf['openingCash'],   // ← INI YANG KETINGGALAN
+                'cfIncome'       => $cf['totalIncome'],
+                'cfExpense'      => $cf['totalExpense'],
+                'cfMargin'       => $cf['totalMargin'],
+                'cfDeposits'     => $cf['totalDeposits'],
+                'cfAdminFees'    => $cf['totalAdminFees'],
+                'cfTransferred'  => $cf['totalTransferred'],
+                'cfSurplus'      => $cf['totalSurplus'],
+                'cfNetKas'       => $cf['netKas'],
+                'cfBankBal'      => $cf['finalBankBal'],
+                'cfNetTotal'     => $cf['netTotal'],
+                'cfRasioOps'     => $cf['rasioOperasional'],
+                'cfRasioGross'   => $cf['rasioGross'],
+
+                // ── saving / surplus (baru) ──
+                'svOpening' => $savingOpening,
+                'svIn'      => $savingIn,
+                'svOut'     => $savingOut,
+                'svBalance' => $savingBalance,
+
+                // ── delivery order (baru) ──
+                'doReceivedQty'  => $doReceivedQty,
+                'doCarryOverQty' => $doCarryOverQty,
+                'doTotalQty'     => $doTotalQty,
+                'doDistributed'  => $doDistributed,
+                'doSisaStok'     => $doSisaStok,
+                'doUtilisasi'    => $doUtilisasi,
+
+                // ── rekonsiliasi (baru) ──
+                'profitBersih'      => $profitBersih,
+                'totalUangDipegang' => $totalUangDipegang,
+                'nilaiStokAtCost'   => $nilaiStokAtCost,
+                'totalKekayaan'      => $totalKekayaan,
+                'selisihIncome'      => $selisihIncome,
+                'selisihMargin'      => $selisihMargin,
+                'selisihDoQty'       => $selisihDoQty,
+                'isKonsisten'        => $selisihIncome === 0 && $selisihMargin === 0 && $selisihDoQty === 0,
+            ];
+        })->values();
+
+        // Growth % dibanding periode sebelumnya
+        $rows = $rows->map(function ($row, $i) use ($rows) {
+            $prev = $i > 0 ? $rows[$i - 1] : null;
+
+            $row['qtyGrowth'] = ($prev && $prev['allQty'] > 0)
+                ? round((($row['allQty'] - $prev['allQty']) / $prev['allQty']) * 100, 1)
+                : null;
+
+            $row['valGrowth'] = ($prev && $prev['allVal'] > 0)
+                ? round((($row['allVal'] - $prev['allVal']) / $prev['allVal']) * 100, 1)
+                : null;
+
+            $row['piutangGrowth'] = ($prev && $prev['piutang'] > 0)
+                ? round((($row['piutang'] - $prev['piutang']) / $prev['piutang']) * 100, 1)
+                : null;
+
+            $row['cfNetTotalGrowth'] = ($prev && $prev['cfNetTotal'] != 0)
+                ? round((($row['cfNetTotal'] - $prev['cfNetTotal']) / abs($prev['cfNetTotal'])) * 100, 1)
+                : null;
+
+            $row['svBalanceGrowth'] = ($prev && $prev['svBalance'] != 0)
+                ? round((($row['svBalance'] - $prev['svBalance']) / abs($prev['svBalance'])) * 100, 1)
+                : null;
+
+            $row['doReceivedGrowth'] = ($prev && $prev['doReceivedQty'] > 0)
+                ? round((($row['doReceivedQty'] - $prev['doReceivedQty']) / $prev['doReceivedQty']) * 100, 1)
+                : null;
+
+            return $row;
+        });
+
+        // Ringkasan keseluruhan
+        $grand = [
+            'allQty'           => $rows->sum('allQty'),
+            'allVal'           => $rows->sum('allVal'),
+            'allPaid'          => $rows->sum('allPaid'),
+            'piutang'          => $rows->sum('piutang'),
+            'allMargin'        => $rows->sum('allMargin'),
+            'avgQtyPerPeriod'  => $rows->count() > 0 ? round($rows->avg('allQty')) : 0,
+            'bestQtyPeriod'    => $rows->sortByDesc('allQty')->first(),
+            'worstLunasPeriod' => $rows->sortBy('rasioLunas')->first(),
+
+            // cashflow
+            'cfOpeningCash'      => $rows->sum('cfOpeningCash'),
+            'cfIncome'           => $rows->sum('cfIncome'),
+            'cfExpense'          => $rows->sum('cfExpense'),
+            'cfMargin'           => $rows->sum('cfMargin'),
+            'cfDeposits'         => $rows->sum('cfDeposits'),
+            'cfAdminFees'        => $rows->sum('cfAdminFees'),
+            'cfTransferred'      => $rows->sum('cfTransferred'),
+            'cfSurplus'          => $rows->sum('cfSurplus'),
+            'cfNetKas'           => $rows->sum('cfNetKas'),
+            'cfBankBal'          => $rows->sum('cfBankBal'),
+            'cfNetTotal'         => $rows->sum('cfNetTotal'),
+            'bestCashflowPeriod' => $rows->sortByDesc('cfNetTotal')->first(),
+
+             // saving / surplus (baru)
+            'svIn'       => $rows->sum('svIn'),
+            'svOut'      => $rows->sum('svOut'),
+            'svBalance'  => $rows->last()['svBalance'] ?? 0,
+
+            'doReceivedQty'  => $rows->sum('doReceivedQty'),
+            'doCarryOverQty' => $rows->sum('doCarryOverQty'),
+            'doTotalQty'     => $rows->sum('doTotalQty'),
+            'doDistributed'  => $rows->sum('doDistributed'),
+            'avgUtilisasi'   => $rows->count() > 0 ? round($rows->avg('doUtilisasi'), 1) : 0,
+
+            'profitBersih'         => $rows->sum('profitBersih'),               // additive antar periode, aman di-sum
+            'totalUangDipegangKini' => $rows->last()['totalUangDipegang'] ?? 0,  // snapshot AKHIR, bukan sum
+            'totalKekayaanKini'     => $rows->last()['totalKekayaan'] ?? 0,      // snapshot AKHIR, bukan sum
+            'adaAnomali'            => $rows->contains(fn($r) => !$r['isKonsisten']),
+        ];
+
+        $chart = [
+            'labels'     => $rows->pluck('label'),
+            'qty'        => $rows->pluck('allQty'),
+            'val'        => $rows->pluck('allVal'),
+            'paid'       => $rows->pluck('allPaid'),
+            'piutang'    => $rows->pluck('piutang'),
+            'margin'     => $rows->pluck('allMargin'),
+            'rasioLunas' => $rows->pluck('rasioLunas'),
+
+            // cashflow (array per-periode, untuk dipetakan ke js chart)
+            'cfIncome'   => $rows->pluck('cfIncome'),
+            'cfExpense'  => $rows->pluck('cfExpense'),
+            'cfNetTotal' => $rows->pluck('cfNetTotal'),
+        ];
+
+        return view('distributions.compare', compact('rows', 'chart', 'grand'));
     }
 
     public function recordPayment(Request $request, Distribution $distribution)

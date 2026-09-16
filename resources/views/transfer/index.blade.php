@@ -376,6 +376,14 @@
                                         </td>
                                     </tr>
                                     @endforeach
+                                    <tr class="total-row">
+                                        <td colspan="2" class="bold">TOTAL</td>
+                                        <td class="r bold">{{ number_format($allUnpaidDOs->sum('qty')) }}</td>
+                                        <td class="r bold">Rp {{ number_format($allUnpaidDOs->sum(fn($u) => $u->qty * $u->price_per_unit)) }}</td>
+                                        <td class="r bold" style="color:var(--melon-dark)">Rp {{ number_format($allUnpaidDOs->sum('paid_amount')) }}</td>
+                                        <td class="r bold" style="color:#dc2626">Rp {{ number_format($allUnpaidDOs->sum(fn($u) => $u->remainingAmount())) }}</td>
+                                        <td></td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>

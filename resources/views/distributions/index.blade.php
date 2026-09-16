@@ -47,7 +47,7 @@
 /* ranking piutang */
 .rank-table { width: 100%; border-collapse: collapse; font-size: 11px; }
 .rank-table th { background: var(--surface2); color: var(--text3); font-size: 9px; font-weight: 700;
-                 text-transform: uppercase; letter-spacing: 0.4px; padding: 7px 10px; text-align: left; }
+                text-transform: uppercase; letter-spacing: 0.4px; padding: 7px 10px; text-align: left; }
 .rank-table th.r { text-align: right; }
 .rank-table td   { padding: 9px 10px; border-bottom: 0.5px solid var(--border); font-size: 11px; }
 .rank-table td.r { text-align: right; }
@@ -72,8 +72,8 @@
 .grid-hdr  { font-size: 10px; font-weight: 700; color: var(--text2); }
 .grid-sub  { font-size: 9px;  color: var(--text3); font-weight: 400; }
 .chart-title { font-size: 10px; font-weight: 700; color: var(--text3);
-               text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
-               display: flex; align-items: center; gap: 6px; }
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
+            display: flex; align-items: center; gap: 6px; }
 .chart-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .legend      { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
 .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text3); }
@@ -98,7 +98,7 @@ $pr = $projectionData; // proyeksi
 <div x-data="{ showForm: false }">
 
 {{-- ══════════════════════════════════════════════════════════
-     PAGE HEADER
+    PAGE HEADER
 ══════════════════════════════════════════════════════════ --}}
 <div class="page-header">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -118,7 +118,7 @@ $pr = $projectionData; // proyeksi
     @if($period->status === 'open')
     <div class="header-acts">
         <a href="{{ route('distributions.create', ['period_id' => $period->id]) }}"
-           class="btn-secondary btn-sm" style="background:#fff7ed;color:#9a3412;border-color:#fed7aa;">
+        class="btn-secondary btn-sm" style="background:#fff7ed;color:#9a3412;border-color:#fed7aa;">
             + Input 1 Baris
         </a>
         <button @click="showForm = !showForm" class="btn-primary btn-sm">+ Input Bulk</button>
@@ -127,16 +127,26 @@ $pr = $projectionData; // proyeksi
 </div>
 
 {{-- ══════════════════════════════════════════════════════════
-     BULK INPUT FORM
+    BULK INPUT FORM
 ══════════════════════════════════════════════════════════ --}}
 <div x-show="showForm" x-cloak x-transition class="bulk-form"
-     x-data="{
-         date: '{{ date('Y-m-d') }}',
-         courierId: '{{ $couriers->first()?->id }}',
-         rows: [{ customer_id: '', qty: '', price_per_unit: 18000, payment_status: 'paid', paid_amount: '' }],
-         addRow()    { this.rows.push({ customer_id: '', qty: '', price_per_unit: 18000, payment_status: 'paid', paid_amount: '' }) },
-         removeRow(i){ if(this.rows.length > 1) this.rows.splice(i,1) }
-     }">
+    x-data="{
+        date: '{{ date('Y-m-d') }}',
+        courierId: '{{ $couriers->first()?->id }}',
+        rows: [{ customer_id: '', qty: '', price_per_unit: 18000, payment_status: 'paid', paid_amount: '' }],
+        addRow()    { this.rows.push({ customer_id: '', qty: '', price_per_unit: 18000, payment_status: 'paid', paid_amount: '' }) },
+        removeRow(i){ if(this.rows.length > 1) this.rows.splice(i,1) },
+        totalQty()   { return this.rows.reduce((s,r)=> s + (parseInt(r.qty)||0), 0) },
+        totalNilai() { return this.rows.reduce((s,r)=> s + ((parseInt(r.qty)||0)*(parseInt(r.price_per_unit)||0)), 0) },
+        totalBayar() {
+            return this.rows.reduce((s,r)=> {
+                const nilai = (parseInt(r.qty)||0)*(parseInt(r.price_per_unit)||0);
+                const bayar = r.payment_status === 'paid' ? nilai : (parseInt(r.paid_amount)||0);
+                return s + bayar;
+            }, 0);
+        },
+        totalPiutang() { return this.totalNilai() - this.totalBayar(); }
+    }">
 
     <div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:12px;">📋 Input Distribusi Bulk</div>
 
@@ -187,11 +197,11 @@ $pr = $projectionData; // proyeksi
                             </td>
                             <td style="text-align:center;">
                                 <input type="number" :name="'rows['+i+'][qty]'" x-model="row.qty" min="1"
-                                       class="field-input" style="padding:6px 8px;font-size:12px;text-align:center;" required>
+                                    class="field-input" style="padding:6px 8px;font-size:12px;text-align:center;" required>
                             </td>
                             <td>
                                 <input type="number" :name="'rows['+i+'][price_per_unit]'" x-model="row.price_per_unit" min="10000"
-                                       class="field-input" style="padding:6px 8px;font-size:12px;text-align:center;">
+                                    class="field-input" style="padding:6px 8px;font-size:12px;text-align:center;">
                             </td>
                             <td>
                                 <select :name="'rows['+i+'][payment_status]'" x-model="row.payment_status"
@@ -203,9 +213,9 @@ $pr = $projectionData; // proyeksi
                             </td>
                             <td>
                                 <input type="number" :name="'rows['+i+'][paid_amount]'" x-model="row.paid_amount"
-                                       :disabled="row.payment_status === 'paid'" min="0"
-                                       class="field-input" style="padding:6px 8px;font-size:12px;text-align:center;"
-                                       :style="row.payment_status === 'paid' ? 'background:var(--surface2)' : ''">
+                                    :disabled="row.payment_status === 'paid'" min="0"
+                                    class="field-input" style="padding:6px 8px;font-size:12px;text-align:center;"
+                                    :style="row.payment_status === 'paid' ? 'background:var(--surface2)' : ''">
                             </td>
                             <td style="text-align:center;">
                                 <button type="button" @click="removeRow(i)"
@@ -216,7 +226,28 @@ $pr = $projectionData; // proyeksi
                 </tbody>
             </table>
         </div>
-
+        {{-- Ringkasan total sebelum simpan --}}
+        <div style="background:#fff;border:0.5px solid #bfdbfe;border-radius:8px;padding:10px 12px;margin-bottom:10px;
+                    display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+            <div>
+                <div style="font-size:10px;color:#64748b;">Total Qty</div>
+                <div style="font-size:15px;font-weight:700;color:#1e40af;" x-text="totalQty().toLocaleString('id') + ' tab'"></div>
+            </div>
+            <div>
+                <div style="font-size:10px;color:#64748b;">Total Nilai</div>
+                <div style="font-size:15px;font-weight:700;color:#1e40af;" x-text="'Rp ' + totalNilai().toLocaleString('id')"></div>
+            </div>
+            <div>
+                <div style="font-size:10px;color:#64748b;">Total Terbayar</div>
+                <div style="font-size:15px;font-weight:700;color:#059669;" x-text="'Rp ' + totalBayar().toLocaleString('id')"></div>
+            </div>
+            <div>
+                <div style="font-size:10px;color:#64748b;">Sisa Piutang</div>
+                <div style="font-size:15px;font-weight:700;"
+                    :style="totalPiutang() > 0 ? 'color:#dc2626' : 'color:#059669'"
+                    x-text="totalPiutang() > 0 ? 'Rp ' + totalPiutang().toLocaleString('id') : '✓ Lunas semua'"></div>
+            </div>
+        </div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
             <button type="button" @click="addRow()"
                     style="background:none;border:none;font-size:12px;color:#1e40af;cursor:pointer;font-family:inherit;font-weight:500;">
@@ -228,7 +259,7 @@ $pr = $projectionData; // proyeksi
 </div>
 
 {{-- ══════════════════════════════════════════════════════════
-     CHART — ANALISIS DISTRIBUSI HARIAN
+    CHART — ANALISIS DISTRIBUSI HARIAN
 ══════════════════════════════════════════════════════════ --}}
 <div class="s-card">
     <div class="s-card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
@@ -296,16 +327,16 @@ $pr = $projectionData; // proyeksi
 
         {{-- Data bridge untuk JS --}}
         <div id="distChartData"
-             data-labels='@json($chartData['labels'])'
-             data-qty='@json($chartData['qty'])'
-             data-val='@json($chartData['val'])'
-             data-paid='@json($chartData['paid'])'
-             style="display:none;"></div>
+            data-labels='@json($chartData['labels'])'
+            data-qty='@json($chartData['qty'])'
+            data-val='@json($chartData['val'])'
+            data-paid='@json($chartData['paid'])'
+            style="display:none;"></div>
     </div>
 </div>
 
 {{-- ══════════════════════════════════════════════════════════
-     RINGKASAN DISTRIBUSI HARIAN
+    RINGKASAN DISTRIBUSI HARIAN
 ══════════════════════════════════════════════════════════ --}}
 
 {{-- Ranking piutang per customer (dihitung di view karena butuh $customers + $customerTotals) --}}
@@ -448,11 +479,11 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
         @endif
 
         {{-- Chart analisis strategi --}}
-        <div class="chart-title" style="margin-top:16px;">
+        {{--  <div class="chart-title" style="margin-top:16px;">
             <span class="chart-dot" style="background:#7c3aed;"></span>Analisis Strategi Distribusi
-        </div>
+        </div>  --}}
 
-        <div class="col">
+        {{--  <div class="col">
             <div class="card" style="padding:12px;margin-top:10px">
                 <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:8px;">Status pembayaran</div>
                 <div style="position:relative;height:120px;"><canvas id="cDonutBlade"></canvas></div>
@@ -468,15 +499,15 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
                     @endforeach
                 </div>
             </div>
-        </div>
-        <div class="col">
+        </div>  --}}
+        {{--  <div class="col">
             <div class="card" style="padding:12px;margin-top:10px">
                 <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:8px;">Qty per customer (tab)</div>
                 <div style="position:relative;height:{{ max(120, $custBarNames->count() * 28) }}px;">
                     <canvas id="cCustBlade"></canvas>
                 </div>
             </div>
-        </div>
+        </div>  --}}
         <div class="col">
             <div class="card" style="padding:12px;margin-top:10px">
                 <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:8px;">Avg harga/tab per hari</div>
@@ -552,7 +583,7 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
 </div>
 
 {{-- ══════════════════════════════════════════════════════════
-     PROYEKSI DISTRIBUSI BULANAN
+    PROYEKSI DISTRIBUSI BULANAN
 ══════════════════════════════════════════════════════════ --}}
 <div class="s-card">
     <div class="s-card-header" style="display:flex;align-items:center;justify-content:space-between;">
@@ -631,7 +662,7 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
 
         {{-- Simulator --}}
         <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px;"
-             x-data="{ extraDays: 0, qtyHari: {{ max((int)$pr['mean'], 10) }}, avgHarga: {{ $s['avgHargaC'] ?? 18000 }} }">
+            x-data="{ extraDays: 0, qtyHari: {{ max((int)$pr['mean'], 10) }}, avgHarga: {{ $s['avgHargaC'] ?? 18000 }} }">
             <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:10px;">Simulator "Bagaimana Jika?"</div>
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;">
                 <span style="min-width:130px;color:var(--text2);">Hari aktif tambahan</span>
@@ -647,12 +678,12 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
                 <div>
                     <div style="font-size:10px;color:var(--text3);">Estimasi total tabung</div>
                     <div x-text="({{ $pr['totalAktual'] }} + ({{ $pr['estHariSisa'] }} + extraDays) * qtyHari).toLocaleString('id') + ' tab'"
-                         style="font-size:20px;font-weight:700;color:#1d4ed8;"></div>
+                        style="font-size:20px;font-weight:700;color:#1d4ed8;"></div>
                 </div>
                 <div>
                     <div style="font-size:10px;color:var(--text3);">Estimasi nilai</div>
                     <div x-text="'Rp ' + (({{ $pr['totalAktual'] }} + ({{ $pr['estHariSisa'] }} + extraDays) * qtyHari) * avgHarga).toLocaleString('id')"
-                         style="font-size:14px;font-weight:700;color:#7c3aed;line-height:1.4;margin-top:4px;"></div>
+                        style="font-size:14px;font-weight:700;color:#7c3aed;line-height:1.4;margin-top:4px;"></div>
                 </div>
             </div>
         </div>
@@ -666,16 +697,16 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
 
 {{-- Data bridge untuk chart proyeksi --}}
 <div id="projChartData"
-     data-labels='@json($pr['chartLabels'])'
-     data-aktual='@json($pr['chartAktual'])'
-     data-tren='@json($pr['chartTren'])'
-     data-min='@json($pr['chartMin'])'
-     data-maks='@json($pr['chartMaks'])'
-     data-today="{{ $pr['todayDay'] }}"
-     style="display:none;"></div>
+    data-labels='@json($pr['chartLabels'])'
+    data-aktual='@json($pr['chartAktual'])'
+    data-tren='@json($pr['chartTren'])'
+    data-min='@json($pr['chartMin'])'
+    data-maks='@json($pr['chartMaks'])'
+    data-today="{{ $pr['todayDay'] }}"
+    style="display:none;"></div>
 
 {{-- ══════════════════════════════════════════════════════════
-     REKAP PER CUSTOMER PER TANGGAL
+    REKAP PER CUSTOMER PER TANGGAL
 ══════════════════════════════════════════════════════════ --}}
 @php
 // Kalkulasi avg harga & piutang per hari (butuh $grid, tetap di view karena grid tidak diserialisasi)
@@ -728,7 +759,7 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                     <td class="r" style="padding:6px 2px;font-size:10px;">
                         @if($cell)
                             <span style="color:{{ $cell['payment_status'] === 'deferred' ? '#ca8a04' : ($cell['payment_status'] === 'partial' ? '#2563eb' : 'var(--melon-dark)') }};font-weight:600;"
-                                  title="Nilai: Rp {{ number_format($cell['total_value']) }} | Bayar: Rp {{ number_format($cell['paid_amount']) }}">
+                                title="Nilai: Rp {{ number_format($cell['total_value']) }} | Bayar: Rp {{ number_format($cell['paid_amount']) }}">
                                 {{ $cell['qty'] }}{{ count($cell['ids']) > 1 ? '*' : '' }}
                             </span>
                         @else
@@ -849,7 +880,7 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
 </div>
 
 {{-- ══════════════════════════════════════════════════════════
-     DETAIL DISTRIBUSI
+    DETAIL DISTRIBUSI
 ══════════════════════════════════════════════════════════ --}}
 <div class="s-card">
     <div class="s-card-header">📋 Detail Distribusi</div>
@@ -922,7 +953,7 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                                         class="link-btn-sm" style="color:var(--melon-dark);">Bayar</button>
                             @endif
                             <form method="POST" action="{{ route('distributions.destroy', $dist) }}"
-                                  style="display:inline;" onsubmit="return confirm('Hapus?')">
+                                style="display:inline;" onsubmit="return confirm('Hapus?')">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="link-btn-sm" style="color:#dc2626;">Hapus</button>
                             </form>
@@ -932,7 +963,7 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                             <form method="POST" action="{{ route('distributions.payment', $dist) }}" class="pay-form">
                                 @csrf
                                 <input type="number" name="paid_amount" placeholder="Nominal"
-                                       min="1" max="{{ $dist->remainingAmount() }}" class="pay-input">
+                                    min="1" max="{{ $dist->remainingAmount() }}" class="pay-input">
                                 <button type="submit" class="pay-btn">OK</button>
                             </form>
                         </div>
@@ -964,7 +995,7 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
     </div>
 </div>
 
-</div>{{-- end x-data --}}
+</div>
 @endsection
 
 @push('scripts')
@@ -990,7 +1021,7 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
     }
 
     /* ════════════════════════════════
-       1. BAR CHART — distribusi harian
+    1. BAR CHART — distribusi harian
     ════════════════════════════════ */
     const elMain = document.getElementById('distChartData');
     if (elMain) {
@@ -1017,10 +1048,10 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                     datasets: [
                         { label: 'Tabung',          data: qty,      backgroundColor: bgColors,  borderRadius: 4, order: 2 },
                         { label: 'Piutang (rb Rp)', data: piutangK, type: 'line',
-                          borderColor: RED, backgroundColor: 'transparent',
-                          pointBackgroundColor: piutangK.map(p => p > 0 ? RED : GREEN),
-                          pointRadius: piutangK.map(p => p > 0 ? 4 : 3),
-                          tension: 0.35, yAxisID: 'y2', order: 1, borderWidth: 1.5 },
+                        borderColor: RED, backgroundColor: 'transparent',
+                        pointBackgroundColor: piutangK.map(p => p > 0 ? RED : GREEN),
+                        pointRadius: piutangK.map(p => p > 0 ? 4 : 3),
+                        tension: 0.35, yAxisID: 'y2', order: 1, borderWidth: 1.5 },
                     ],
                 },
                 options: {
@@ -1039,8 +1070,8 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                         x:  { ticks: { ...TICK, autoSkip: true, maxTicksLimit: 16, maxRotation: 0 }, grid: { display: false } },
                         y:  { beginAtZero: true, ticks: TICK, title: { display: true, text: 'Tabung',         font: { size: 10 }, color: '#888' } },
                         y2: { position: 'right', beginAtZero: true, ticks: TICK,
-                              title: { display: true, text: 'Piutang (rb Rp)', font: { size: 10 }, color: RED },
-                              grid: { drawOnChartArea: false } },
+                            title: { display: true, text: 'Piutang (rb Rp)', font: { size: 10 }, color: RED },
+                            grid: { drawOnChartArea: false } },
                     },
                 },
             });
@@ -1062,16 +1093,16 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                 const clsMap = { high: 'pill-green', low: 'pill-red', debt: 'pill-orange' };
                 box.innerHTML = anomalies.length
                     ? `<div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:6px;">⚠ Perlu perhatian:</div>
-                       <div class="pill-box">${anomalies.map(a =>
-                           `<div class="pill ${clsMap[a.type]}"><span class="pill-icon">!</span><span>Tgl ${a.tgl}: ${a.msg}</span></div>`
-                       ).join('')}</div>`
+                    <div class="pill-box">${anomalies.map(a =>
+                        `<div class="pill ${clsMap[a.type]}"><span class="pill-icon">!</span><span>Tgl ${a.tgl}: ${a.msg}</span></div>`
+                    ).join('')}</div>`
                     : `<div class="pill pill-green"><span class="pill-icon">✓</span><span>Distribusi normal — tidak ada anomali signifikan bulan ini.</span></div>`;
             }
         }
     }
 
     /* ════════════════════════════════
-       2. CHART NILAI HARIAN
+    2. CHART NILAI HARIAN
     ════════════════════════════════ */
     const hariLabels  = @json($s['hariLabels']);
     const hariNilai   = @json($s['hariNilai']);
@@ -1104,7 +1135,7 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
     }
 
     /* ════════════════════════════════
-       3. DONUT STATUS PEMBAYARAN
+    3. DONUT STATUS PEMBAYARAN
     ════════════════════════════════ */
     if (document.getElementById('cDonutBlade')) {
         new Chart(document.getElementById('cDonutBlade'), {
@@ -1205,7 +1236,7 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
     }
 
     /* ════════════════════════════════
-       5. LINE AVG HARGA PER HARI
+    5. LINE AVG HARGA PER HARI
     ════════════════════════════════ */
     if (document.getElementById('cHargaBlade') && hariLabels.length) {
         new Chart(document.getElementById('cHargaBlade'), {
@@ -1228,7 +1259,7 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
     }
 
     /* ════════════════════════════════
-       6. PROYEKSI KUMULATIF
+    6. PROYEKSI KUMULATIF
     ════════════════════════════════ */
     const elProj = document.getElementById('projChartData');
     if (elProj) {
@@ -1252,7 +1283,7 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                 scales: {
                     x: { ticks: { font: { size: 10 }, color: '#9CA3AF', autoSkip: true, maxTicksLimit: 15 }, grid: { display: false } },
                     y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' },
-                         ticks: { font: { size: 10 }, color: '#9CA3AF', callback: v => Number.isInteger(v) ? v.toLocaleString('id') : '' } },
+                        ticks: { font: { size: 10 }, color: '#9CA3AF', callback: v => Number.isInteger(v) ? v.toLocaleString('id') : '' } },
                 },
             },
         });

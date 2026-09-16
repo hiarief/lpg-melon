@@ -13,7 +13,7 @@
     ╚══════════════════════════════════════════════════════════════╝
 --}}
 
-<div x-data="{ showForm: false }">
+<div x-data="{ showForm: false, showBulk: false }">
 
 {{-- ══ HEADER ══ --}}
 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;margin-bottom:12px;flex-wrap:wrap">
@@ -31,7 +31,11 @@
         <span style="font-size:10px;color:var(--text3)">{{ $summary['cfActiveDays'] }} hari aktif</span>
     </div>
     @if($period->status === 'open')
-        <button @click="showForm = !showForm" class="btn-primary btn-sm">+ Input Pengeluaran</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button @click="showForm = !showForm; showBulk = false" class="btn-secondary btn-sm"
+                    style="background:#fff7ed;color:#9a3412;border-color:#fed7aa">+ Input 1 Baris</button>
+            <button @click="showBulk = !showBulk; showForm = false" class="btn-primary btn-sm">+ Input Bulk</button>
+        </div>
     @endif
 </div>
 
@@ -67,6 +71,90 @@
                     </div>
                 </div>
                 <button type="submit" class="btn-primary">✅ Simpan</button>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+
+{{-- ══ FORM INPUT BULK ══ --}}
+@if($period->status === 'open')
+<div x-show="showBulk" x-cloak x-transition style="margin-bottom:10px"
+     x-data="{
+        rows: [{ category: '{{ array_key_first(\App\Models\DailyExpense::$categoryLabels) }}', amount: '', description: '' }],
+        addRow()    { this.rows.push({ category: '{{ array_key_first(\App\Models\DailyExpense::$categoryLabels) }}', amount: '', description: '' }) },
+        removeRow(i){ if (this.rows.length > 1) this.rows.splice(i, 1) },
+        totalAmount() { return this.rows.reduce((s, r) => s + (parseInt(r.amount) || 0), 0) },
+        totalBaris()  { return this.rows.filter(r => (parseInt(r.amount) || 0) > 0).length }
+     }">
+    <div class="s-card">
+        <div class="s-card-header">📋 Input Pengeluaran Bulk</div>
+        <div style="padding:12px 14px">
+            <form method="POST" action="{{ route('cashflow.bulk-store') }}">
+                @csrf
+                <input type="hidden" name="period_id" value="{{ $period->id }}">
+
+                <div style="margin-bottom:12px;max-width:240px">
+                    <label class="field-label">Tanggal (berlaku untuk semua baris)</label>
+                    <input type="date" name="expense_date" value="{{ date('Y-m-d') }}" class="field-input" required>
+                </div>
+
+                <div class="scroll-x" style="margin-bottom:10px">
+                    <table class="mob-table" style="font-size:12px">
+                        <thead>
+                            <tr>
+                                <th style="min-width:140px">Kategori</th>
+                                <th style="min-width:120px;text-align:center">Nominal (Rp)</th>
+                                <th style="min-width:160px">Keterangan</th>
+                                <th style="width:28px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(row, i) in rows" :key="i">
+                                <tr>
+                                    <td style="padding:5px 4px">
+                                        <select :name="'rows['+i+'][category]'" x-model="row.category"
+                                                class="field-select" style="padding:6px 8px;font-size:12px" required>
+                                            @foreach(\App\Models\DailyExpense::$categoryLabels as $key => $label)
+                                                <option value="{{ $key }}">{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td style="padding:5px 4px">
+                                        <input type="number" :name="'rows['+i+'][amount]'" x-model="row.amount" min="1"
+                                               class="field-input" style="padding:6px 8px;font-size:12px;text-align:right" required>
+                                    </td>
+                                    <td style="padding:5px 4px">
+                                        <input type="text" :name="'rows['+i+'][description]'" x-model="row.description"
+                                               placeholder="Opsional" class="field-input" style="padding:6px 8px;font-size:12px">
+                                    </td>
+                                    <td style="text-align:center;padding:5px 4px">
+                                        <button type="button" @click="removeRow(i)"
+                                                style="background:none;border:none;color:#ef4444;font-size:18px;line-height:1;cursor:pointer;padding:0">×</button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- Total sebelum simpan --}}
+                <div style="background:var(--surface2);border:0.5px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                    <div>
+                        <div style="font-size:10px;color:var(--text3)">Total pengeluaran yang akan disimpan</div>
+                        <div style="font-size:10px;color:var(--text3)" x-text="totalBaris() + ' baris terisi'"></div>
+                    </div>
+                    <div style="font-size:20px;font-weight:700;color:#dc2626;white-space:nowrap"
+                         x-text="'Rp ' + totalAmount().toLocaleString('id')"></div>
+                </div>
+
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                    <button type="button" @click="addRow()"
+                            style="background:none;border:none;font-size:12px;color:#1e40af;cursor:pointer;font-family:inherit;font-weight:500">
+                        + Tambah Baris
+                    </button>
+                    <button type="submit" class="btn-primary btn-sm">✅ Simpan Semua</button>
+                </div>
             </form>
         </div>
     </div>
