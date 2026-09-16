@@ -46,11 +46,17 @@ class DistributionController extends Controller
         $summaryData    = $this->buildSummaryData($customerTotals, $chartData, $daysInMonth);
         $projectionData = $this->buildProjectionData($chartData['qty'], $chartData['labels'], $daysInMonth);
 
+        // ── Data per-hari untuk seluruh rentang bulan (dipakai di Blade: avgPriceByDay,
+        //    selisih piutang per hari) — dihitung SEKALI di sini dalam satu pass, supaya
+        //    Blade tinggal lookup array, bukan meng-iterasi ulang $grid tiap baris tabel.
+        $dailyFull = $this->buildFullDailyBreakdown($grid, $daysInMonth);
+
         return view('distributions.index', compact(
             'period', 'periods', 'distributions',
             'customers', 'couriers', 'daysInMonth',
             'grid', 'customerTotals', 'totalDoQty',
             'chartData', 'summaryData', 'projectionData',
+            'dailyFull',
         ));
     }
 
@@ -446,14 +452,21 @@ class DistributionController extends Controller
     /**
      * Hitung total qty / nilai / bayar per customer.
      *
+     * OPTIMASI: dulu di dalam foreach($customers) melakukan
+     * $distributions->where('customer_id', $c->id) yang men-scan ULANG
+     * seluruh koleksi distribusi untuk tiap customer — O(customers × distribusi).
+     * Sekarang di-groupBy SEKALI di awal, jadi tiap customer tinggal ambil
+     * grup miliknya — O(distribusi) total, jauh lebih ringan saat data besar.
+     *
      * @return array<int, array{qty:int, total_value:int, paid:int}>
      */
     private function buildCustomerTotals(Collection $customers, Collection $distributions): array
     {
-        $totals = [];
+        $grouped = $distributions->groupBy('customer_id');
+        $totals  = [];
 
         foreach ($customers as $c) {
-            $rows        = $distributions->where('customer_id', $c->id);
+            $rows        = $grouped->get($c->id, collect());
             $qty         = $rows->sum('qty');
             $total_value = $rows->sum(fn($d) => $d->qty * $d->price_per_unit);
             $base_cost   = $qty * self::BASE_PRICE;
@@ -474,26 +487,83 @@ class DistributionController extends Controller
      * Data harian untuk chart bar utama.
      * Hanya hari dengan qty > 0 yang dimasukkan.
      *
+     * OPTIMASI: dulu untuk tiap hari (1..daysInMonth) melakukan
+     * collect($grid)->sum(...) yang meng-iterasi ULANG seluruh customer
+     * di $grid — O(days × customers). Sekarang cukup satu kali loop
+     * menyusuri $grid dan mengakumulasi ke array per-hari — O(total sel grid),
+     * jauh lebih murah kalau jumlah customer banyak.
+     *
      * @return array{labels:int[], qty:int[], val:int[], paid:int[]}
      */
     private function buildDailyChartData(array $grid, int $daysInMonth): array
     {
+        $dailyQty  = array_fill(1, $daysInMonth, 0);
+        $dailyVal  = array_fill(1, $daysInMonth, 0);
+        $dailyPaid = array_fill(1, $daysInMonth, 0);
+
+        foreach ($grid as $days) {
+            foreach ($days as $day => $cell) {
+                $dailyQty[$day]  += $cell['qty'];
+                $dailyVal[$day]  += $cell['total_value'];
+                $dailyPaid[$day] += $cell['paid_amount'];
+            }
+        }
+
         $labels = $qty = $val = $paid = [];
-
         for ($d = 1; $d <= $daysInMonth; $d++) {
-            $dq = collect($grid)->sum(fn($days) => $days[$d]['qty']          ?? 0);
-            $dv = collect($grid)->sum(fn($days) => $days[$d]['total_value']  ?? 0);
-            $dp = collect($grid)->sum(fn($days) => $days[$d]['paid_amount']  ?? 0);
-
-            if ($dq > 0) {
+            if ($dailyQty[$d] > 0) {
                 $labels[] = $d;
-                $qty[]    = $dq;
-                $val[]    = $dv;
-                $paid[]   = $dp;
+                $qty[]    = $dailyQty[$d];
+                $val[]    = $dailyVal[$d];
+                $paid[]   = $dailyPaid[$d];
             }
         }
 
         return compact('labels', 'qty', 'val', 'paid');
+    }
+
+    /**
+     * Rincian per-hari untuk SELURUH rentang bulan (termasuk hari kosong),
+     * dipakai oleh Blade untuk baris "Avg Harga/Tab per hari" dan
+     * "Selisih (Piutang) per hari" di tabel Rekap per Customer.
+     *
+     * Ini menggantikan 2 loop terpisah yang sebelumnya ada langsung di
+     * Blade (masing-masing meng-iterasi ulang $grid per hari) — sekarang
+     * dihitung SEKALI di sini bersamaan dengan buildDailyChartData, dalam
+     * satu pass yang sama, lalu Blade tinggal array-lookup per hari.
+     *
+     * @return array<int, array{qty:int, val:int, paid:int, avgHarga:int, selisih:int}>
+     */
+    private function buildFullDailyBreakdown(array $grid, int $daysInMonth): array
+    {
+        $dailyQty  = array_fill(1, $daysInMonth, 0);
+        $dailyVal  = array_fill(1, $daysInMonth, 0);
+        $dailyPaid = array_fill(1, $daysInMonth, 0);
+
+        foreach ($grid as $days) {
+            foreach ($days as $day => $cell) {
+                $dailyQty[$day]  += $cell['qty'];
+                $dailyVal[$day]  += $cell['total_value'];
+                $dailyPaid[$day] += $cell['paid_amount'];
+            }
+        }
+
+        $result = [];
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $qty = $dailyQty[$d];
+            $val = $dailyVal[$d];
+            $paid = $dailyPaid[$d];
+
+            $result[$d] = [
+                'qty'      => $qty,
+                'val'      => $val,
+                'paid'     => $paid,
+                'avgHarga' => $qty > 0 ? round($val / $qty) : 0,
+                'selisih'  => $val - $paid,
+            ];
+        }
+
+        return $result;
     }
 
     /**

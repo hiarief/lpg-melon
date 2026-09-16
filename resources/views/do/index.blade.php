@@ -5,12 +5,12 @@
 {{-- ══════════════════════════════════════════════════════════════
      HEADER & PERIOD SELECTOR
 ══════════════════════════════════════════════════════════════ --}}
-<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;margin-bottom:12px;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span style="font-size:15px;font-weight:600;color:var(--text1)">📦 DO Agen</span>
+<div class="page-header-row">
+    <div class="page-header-left">
+        <span class="page-title">📦 DO Agen</span>
 
         <form method="GET" action="{{ route('do.index') }}">
-            <select name="period_id" onchange="this.form.submit()" class="field-select" style="padding:6px 10px;font-size:12px;width:auto">
+            <select name="period_id" onchange="this.form.submit()" class="field-select field-select-inline">
                 @foreach($periods as $p)
                     <option value="{{ $p->id }}" {{ $p->id == $period->id ? 'selected' : '' }}>{{ $p->label }}</option>
                 @endforeach
@@ -20,7 +20,7 @@
         @if($period->status === 'open')
             <span class="badge badge-green">🟢 Buka</span>
         @else
-            <span class="badge" style="background:#f0f0f0;color:#666">🔒 Tutup</span>
+            <span class="badge badge-muted">🔒 Tutup</span>
         @endif
     </div>
 
@@ -170,9 +170,9 @@
         <table class="mob-table">
             <thead>
                 <tr>
-                    <th style="position:sticky;left:0;background:#f8faf8;z-index:2">Pangkalan</th>
+                    <th class="sticky-col-header">Pangkalan</th>
                     @for($d = 1; $d <= $daysInMonth; $d++)
-                        <th style="text-align:center;width:28px">{{ $d }}</th>
+                        <th class="day-cell-th">{{ $d }}</th>
                     @endfor
                     <th class="r">Total</th>
                     <th class="r">Nilai</th>
@@ -186,22 +186,22 @@
                     $outletValue = $outletDOs->sum(fn ($d) => $d->qty * $d->price_per_unit);
                 @endphp
                 <tr>
-                    <td class="bold" style="position:sticky;left:0;background:#fff;z-index:1">{{ $outlet->name }}</td>
+                    <td class="bold sticky-col sticky-col-body">{{ $outlet->name }}</td>
 
                     @for($day = 1; $day <= $daysInMonth; $day++)
                     @php
                         $dateStr = sprintf('%04d-%02d-%02d', $period->year, $period->month, $day);
                         $dayQty  = $outletDOs->filter(fn ($d) => $d->do_date->format('Y-m-d') === $dateStr)->sum('qty');
                     @endphp
-                    <td style="text-align:center;padding:6px 2px;{{ $dayQty > 0 ? 'background:var(--melon-light);font-weight:600;color:var(--melon-dark)' : 'color:#d1d5db' }}">
+                    <td class="day-cell {{ $dayQty > 0 ? 'day-cell-active' : 'day-cell-empty' }}">
                         {{ $dayQty ?: '-' }}
                     </td>
                     @endfor
 
-                    <td class="r bold" style="color:{{ $outletTotal > 0 ? 'var(--melon-dark)' : 'var(--text3)' }}">
+                    <td class="r bold {{ $outletTotal > 0 ? 'text-melon' : 'text-muted' }}">
                         {{ $outletTotal > 0 ? number_format($outletTotal) : '-' }}
                     </td>
-                    <td class="r" style="color:var(--text2)">
+                    <td class="r text-secondary">
                         {{ $outletTotal > 0 ? 'Rp '.number_format($outletValue) : '-' }}
                     </td>
                 </tr>
@@ -209,13 +209,13 @@
 
                 {{-- Row Total --}}
                 <tr class="total-row">
-                    <td class="bold" style="position:sticky;left:0;background:var(--melon);z-index:1">TOTAL</td>
+                    <td class="bold sticky-col sticky-col-total">TOTAL</td>
                     @for($day = 1; $day <= $daysInMonth; $day++)
                     @php
                         $dateStr  = sprintf('%04d-%02d-%02d', $period->year, $period->month, $day);
                         $dayTotal = $dos->filter(fn ($d) => $d->do_date->format('Y-m-d') === $dateStr)->sum('qty');
                     @endphp
-                    <td style="text-align:center;padding:6px 2px">{{ $dayTotal ?: '-' }}</td>
+                    <td class="day-cell">{{ $dayTotal ?: '-' }}</td>
                     @endfor
                     <td class="r">{{ number_format($grandTotal) }}</td>
                     <td class="r">Rp {{ number_format($grandValue) }}</td>
@@ -229,31 +229,31 @@
 {{-- ══════════════════════════════════════════════════════════════
      KPI CARDS
 ══════════════════════════════════════════════════════════════ --}}
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-    <div class="card" style="padding:10px 12px">
-        <div style="font-size:10px;color:var(--text3)">Total DO Diterima</div>
-        <div style="font-size:18px;font-weight:600;color:#c2410c">{{ number_format($grandTotal) }} tab</div>
-        <div style="font-size:10px;color:var(--text3)">Rp {{ number_format($grandValue) }}</div>
+<div class="kpi-grid">
+    <div class="card kpi-card">
+        <div class="kpi-label">Total DO Diterima</div>
+        <div class="kpi-value text-orange">{{ number_format($grandTotal) }} tab</div>
+        <div class="kpi-sub">Rp {{ number_format($grandValue) }}</div>
     </div>
 
-    <div class="card" style="padding:10px 12px">
-        <div style="font-size:10px;color:var(--text3)">Total Terbayar ke Agen</div>
-        <div style="font-size:18px;font-weight:600;color:var(--melon-dark)">Rp {{ number_format($totalBayarAll) }}</div>
-        <div style="font-size:10px;color:var(--text3)">{{ number_format($rasioLunas, 1) }}% dari nilai DO</div>
+    <div class="card kpi-card">
+        <div class="kpi-label">Total Terbayar ke Agen</div>
+        <div class="kpi-value text-melon">Rp {{ number_format($totalBayarAll) }}</div>
+        <div class="kpi-sub">{{ number_format($rasioLunas, 1) }}% dari nilai DO</div>
     </div>
 
-    <div class="card" style="padding:10px 12px">
-        <div style="font-size:10px;color:var(--text3)">Piutang ke Agen</div>
-        <div style="font-size:18px;font-weight:600;color:{{ $totalPiutangAll > 0 ? '#991b1b' : 'var(--melon-dark)' }}">
+    <div class="card kpi-card">
+        <div class="kpi-label">Piutang ke Agen</div>
+        <div class="kpi-value {{ $totalPiutangAll > 0 ? 'text-red' : 'text-melon' }}">
             {{ $totalPiutangAll > 0 ? 'Rp '.number_format($totalPiutangAll) : '✓ Lunas' }}
         </div>
-        <div style="font-size:10px;color:var(--text3)">{{ number_format($pctPiutang, 1) }}% · termasuk carry-over</div>
+        <div class="kpi-sub">{{ number_format($pctPiutang, 1) }}% · termasuk carry-over</div>
     </div>
 
-    <div class="card" style="padding:10px 12px">
-        <div style="font-size:10px;color:var(--text3)">Surplus Transfer</div>
-        <div style="font-size:18px;font-weight:600;color:#1d4ed8">Rp {{ number_format($grandSurplus) }}</div>
-        <div style="font-size:10px;color:var(--text3)">dari transfer ke rek utama</div>
+    <div class="card kpi-card">
+        <div class="kpi-label">Surplus Transfer</div>
+        <div class="kpi-value text-blue">Rp {{ number_format($grandSurplus) }}</div>
+        <div class="kpi-sub">dari transfer ke rek utama</div>
     </div>
 </div>
 
@@ -262,78 +262,77 @@
      PROYEKSI DO AKHIR BULAN
 ══════════════════════════════════════════════════════════════ --}}
 <div class="s-card">
-    <div class="s-card-header" style="background:#EEEDFE;border-color:#CECBF6">
-        <span style="color:#3C3489">🔮 Proyeksi DO Akhir Bulan</span>
-        <span style="font-size:10px;color:#534AB7;font-weight:400">
+    <div class="s-card-header s-card-header-purple">
+        <span>🔮 Proyeksi DO Akhir Bulan</span>
+        <span class="sub">
             hari ke-{{ $hariIni }} dari {{ $daysInMonth }} · {{ $activeDaysDO }} hari aktif DO
         </span>
     </div>
 
-    <div style="padding:12px 14px">
+    <div class="proj-body">
 
         {{-- 3 Skenario --}}
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-            <div style="background:#E6F1FB;border-radius:8px;padding:10px;text-align:center">
-                <div style="font-size:10px;color:#185FA5;margin-bottom:4px">Optimis <span style="opacity:.7">(+20%)</span></div>
-                <div style="font-size:20px;font-weight:600;color:#0C447C">{{ number_format($proyeksiOptimis) }}</div>
-                <div style="font-size:9px;color:#185FA5">tabung</div>
+        <div class="scenario-grid">
+            <div class="scenario-box scenario-optimis">
+                <div class="scenario-label">Optimis <span class="opacity-muted">(+20%)</span></div>
+                <div class="scenario-value">{{ number_format($proyeksiOptimis) }}</div>
+                <div class="scenario-unit">tabung</div>
             </div>
 
-            <div style="background:#EEEDFE;border:2px solid #AFA9EC;border-radius:8px;padding:10px;text-align:center">
-                <div style="font-size:10px;color:#534AB7;margin-bottom:4px">Realistis ★</div>
-                <div style="font-size:20px;font-weight:600;color:#3C3489">{{ number_format($proyeksiRealistis) }}</div>
-                <div style="font-size:9px;color:#534AB7">tabung</div>
+            <div class="scenario-box scenario-realistis">
+                <div class="scenario-label">Realistis ★</div>
+                <div class="scenario-value">{{ number_format($proyeksiRealistis) }}</div>
+                <div class="scenario-unit">tabung</div>
             </div>
 
-            <div style="background:#FAEEDA;border-radius:8px;padding:10px;text-align:center">
-                <div style="font-size:10px;color:#854F0B;margin-bottom:4px">Konservatif <span style="opacity:.7">(-20%)</span></div>
-                <div style="font-size:20px;font-weight:600;color:#633806">{{ number_format($proyeksiKonservatif) }}</div>
-                <div style="font-size:9px;color:#854F0B">tabung</div>
+            <div class="scenario-box scenario-konservatif">
+                <div class="scenario-label">Konservatif <span class="opacity-muted">(-20%)</span></div>
+                <div class="scenario-value">{{ number_format($proyeksiKonservatif) }}</div>
+                <div class="scenario-unit">tabung</div>
             </div>
         </div>
 
         {{-- Progress Bar --}}
-        <div style="margin-bottom:12px">
-            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:4px">
+        <div class="progress-block">
+            <div class="progress-label-row">
                 <span>Progress bulan ini</span>
-                <span style="font-weight:600;color:#534AB7">{{ $pctTercapai }}% dari proyeksi realistis</span>
+                <span class="accent">{{ $pctTercapai }}% dari proyeksi realistis</span>
             </div>
-            <div style="height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden;position:relative">
-                <div style="height:100%;width:{{ $pctTercapai }}%;background:#7F77DD;border-radius:4px"></div>
-                <div style="position:absolute;top:0;left:{{ $pctJalan }}%;width:2px;height:100%;background:#E24B4A;opacity:.7"></div>
+            <div class="progress-track">
+                <div class="progress-fill" style="width:{{ $pctTercapai }}%"></div>
+                <div class="progress-marker" style="left:{{ $pctJalan }}%"></div>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:3px">
+            <div class="progress-footer-row">
                 <span>0</span>
-                <span style="color:#E24B4A">← hari ke-{{ $hariIni }} ({{ $pctJalan }}%)</span>
+                <span class="accent">← hari ke-{{ $hariIni }} ({{ $pctJalan }}%)</span>
                 <span>{{ number_format($proyeksiRealistis) }} tab</span>
             </div>
         </div>
 
         {{-- Vs Bulan Lalu --}}
         @if($prevTotal > 0)
-        @php $selisihColor = $selisih >= 0 ? '#0F6E56' : '#A32D2D'; @endphp
-        <div style="background:{{ $selisih >= 0 ? '#E1F5EE' : '#FCEBEB' }};border-radius:8px;padding:9px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+        <div class="vs-box {{ $selisih >= 0 ? 'positive' : 'negative' }}">
             <div>
-                <div style="font-size:10px;color:{{ $selisihColor }};font-weight:600">
+                <div class="vs-title">
                     {{ $selisih >= 0 ? '↑' : '↓' }} vs bulan lalu ({{ number_format($prevTotal) }} tab)
                 </div>
-                <div style="font-size:10px;color:var(--text3);margin-top:2px">
+                <div class="vs-sub">
                     {{ $prevPeriod?->label ?? 'bulan lalu' }}
                 </div>
             </div>
-            <div style="text-align:right">
-                <div style="font-size:16px;font-weight:600;color:{{ $selisihColor }}">
+            <div>
+                <div class="vs-value">
                     {{ $selisih >= 0 ? '+' : '' }}{{ number_format($selisih) }}
                 </div>
-                <div style="font-size:10px;color:{{ $selisihColor }}">{{ $vsLalu }}% dari bln lalu</div>
+                <div class="vs-pct">{{ $vsLalu }}% dari bln lalu</div>
             </div>
         </div>
         @endif
 
         {{-- Tabel Proyeksi per Pangkalan --}}
-        <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">Per pangkalan</div>
+        <div class="subsection-label">Per pangkalan</div>
         <div class="scroll-x">
-            <table class="mob-table" style="font-size:11px">
+            <table class="mob-table table-sm">
                 <thead>
                     <tr>
                         <th>Pangkalan</th>
@@ -351,21 +350,19 @@
                     @endphp
                     <tr>
                         <td class="bold">{{ $row['outlet']->name }}</td>
-                        <td class="r" style="color:#378ADD">{{ number_format($row['qtySkrg']) }}</td>
-                        <td class="r" style="color:#7F77DD;font-weight:600">{{ number_format($row['proyeksi']) }}</td>
+                        <td class="r text-sky">{{ number_format($row['qtySkrg']) }}</td>
+                        <td class="r bold text-indigo">{{ number_format($row['proyeksi']) }}</td>
                         @if($prevTotal > 0)
-                        <td class="r" style="color:var(--text3)">{{ $row['qtyLalu'] > 0 ? number_format($row['qtyLalu']) : '-' }}</td>
+                        <td class="r text-muted">{{ $row['qtyLalu'] > 0 ? number_format($row['qtyLalu']) : '-' }}</td>
                         @endif
                         <td>
                             @if($row['pace'] !== null)
-                                <span style="font-size:10px;background:{{ $w['bg'] }};color:{{ $w['text'] }};padding:1px 6px;border-radius:4px;display:inline-block;margin-bottom:3px">
-                                    {{ $row['pace'] }}%
-                                </span>
+                                <span class="pace-badge" style="--pace-bg:{{ $w['bg'] }};--pace-text:{{ $w['text'] }}">{{ $row['pace'] }}%</span>
                             @else
-                                <span style="font-size:10px;color:var(--text3)">—</span>
+                                <span class="text-muted" style="font-size:10px">—</span>
                             @endif
-                            <div style="height:4px;background:#f0f0f0;border-radius:2px;overflow:hidden">
-                                <div style="height:100%;width:{{ $barW }}%;background:{{ $w['text'] }};border-radius:2px"></div>
+                            <div class="pace-track">
+                                <div class="pace-fill" style="width:{{ $barW }}%;--pace-text:{{ $w['text'] }}"></div>
                             </div>
                         </td>
                     </tr>
@@ -382,9 +379,7 @@
                         <td>
                             @if($vsLalu !== null)
                             @php $wt = $warna($vsLalu); @endphp
-                            <span style="font-size:10px;background:{{ $wt['bg'] }};color:{{ $wt['text'] }};padding:1px 6px;border-radius:4px;display:inline-block">
-                                {{ $vsLalu }}%
-                            </span>
+                            <span class="pace-badge" style="--pace-bg:{{ $wt['bg'] }};--pace-text:{{ $wt['text'] }}">{{ $vsLalu }}%</span>
                             @endif
                         </td>
                     </tr>
@@ -393,22 +388,22 @@
         </div>
 
         {{-- Rekomendasi Otomatis --}}
-        <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+        <div class="notice-stack">
             @if($selisih < 0 && $prevTotal > 0)
             @php $targetHarian = round(($prevTotal - $grandTotal) / max($sisaHari, 1)); @endphp
-            <div style="background:#FCEBEB;border-radius:6px;padding:7px 9px;font-size:10px;color:#791F1F">
+            <div class="notice notice-danger">
                 ⚠ Butuh <strong>+{{ number_format($targetHarian) }} tab/hari</strong> di sisa {{ $sisaHari }} hari untuk kejar bulan lalu
             </div>
             @endif
 
             @if($activeDaysDO / max($hariIni, 1) < 0.5)
-            <div style="background:#FAEEDA;border-radius:6px;padding:7px 9px;font-size:10px;color:#854F0B">
+            <div class="notice notice-warning">
                 ⚠ Hanya {{ $activeDaysDO }} dari {{ $hariIni }} hari ada DO — frekuensi pengiriman perlu ditingkatkan
             </div>
             @endif
 
             @if($selisih >= 0 || ($vsLalu !== null && $vsLalu >= 90))
-            <div style="background:#E1F5EE;border-radius:6px;padding:7px 9px;font-size:10px;color:#0F6E56">
+            <div class="notice notice-success">
                 ✓ Laju DO berjalan baik — pertahankan konsistensi pengiriman
             </div>
             @endif
@@ -423,19 +418,13 @@
 @if(count($hariDOLabels) > 0)
 <div class="s-card">
     <div class="s-card-header">📈 Nilai DO Harian (Rp)</div>
-    <div style="padding:12px 14px">
-        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px">
-            <span style="font-size:10px;color:var(--text3);display:flex;align-items:center;gap:4px">
-                <span style="width:10px;height:10px;background:#FAC775;border-radius:2px;display:inline-block"></span>Nilai DO
-            </span>
-            <span style="font-size:10px;color:var(--text3);display:flex;align-items:center;gap:4px">
-                <span style="width:14px;border-top:2px solid #1D9E75;display:inline-block"></span>Terbayar
-            </span>
-            <span style="font-size:10px;color:var(--text3);display:flex;align-items:center;gap:4px">
-                <span style="width:14px;border-top:2px dashed #E24B4A;display:inline-block"></span>Piutang
-            </span>
+    <div class="proj-body">
+        <div class="chart-legend-row">
+            <span class="legend-item"><span class="legend-dot" style="--legend-color:#FAC775"></span>Nilai DO</span>
+            <span class="legend-item"><span class="legend-line" style="--legend-color:#1D9E75"></span>Terbayar</span>
+            <span class="legend-item"><span class="legend-line legend-line-dashed" style="--legend-color:#E24B4A"></span>Piutang</span>
         </div>
-        <div style="position:relative;width:100%;height:200px">
+        <div class="chart-wrap chart-wrap-lg">
             <canvas id="cDOBlade"></canvas>
         </div>
     </div>
@@ -480,23 +469,21 @@
                 @endphp
                 <tr>
                     <td>
-                        <span style="width:20px;height:20px;border-radius:50%;background:{{ $rColor }};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:600">
-                            {{ $i + 1 }}
-                        </span>
+                        <span class="rank-badge" style="--rank-color:{{ $rColor }}">{{ $i + 1 }}</span>
                     </td>
                     <td class="bold">
                         {{ $rp['name'] }}
                         @if($rp['has_carryover'])
-                            <span style="font-size:9px;color:#b45309">↩ c/o</span>
+                            <span class="co-tag">↩ c/o</span>
                         @endif
                     </td>
                     <td class="r">Rp {{ number_format($rp['nilai']) }}</td>
-                    <td class="r" style="color:var(--melon-dark)">Rp {{ number_format($rp['bayar']) }}</td>
+                    <td class="r text-melon">Rp {{ number_format($rp['bayar']) }}</td>
                     <td class="r bold" style="color:{{ $rColor }}">Rp {{ number_format($rp['piutang']) }}</td>
                     <td>
-                        <div style="font-size:9px;color:var(--text3);margin-bottom:3px">{{ $rp['pct_lunas'] }}% · {{ $pctShare }}% total</div>
-                        <div style="height:5px;background:#f0f0f0;border-radius:3px;overflow:hidden">
-                            <div style="height:100%;width:{{ $rp['pct_lunas'] }}%;background:{{ $barColor }};border-radius:3px"></div>
+                        <div class="mini-progress-label">{{ $rp['pct_lunas'] }}% · {{ $pctShare }}% total</div>
+                        <div class="mini-progress-track">
+                            <div class="mini-progress-fill" style="width:{{ $rp['pct_lunas'] }}%;--mini-color:{{ $barColor }}"></div>
                         </div>
                     </td>
                     <td><span class="badge {{ $sBadge }}">{{ $sLbl }}</span></td>
@@ -507,7 +494,7 @@
     </div>
 </div>
 @else
-<div style="background:#f0fdf4;border:0.5px solid #86efac;border-radius:8px;padding:10px 12px;font-size:12px;color:#166534;margin-bottom:10px">
+<div class="notice-success empty-state pad-sm">
     ✅ Semua pangkalan sudah lunas — tidak ada piutang DO
 </div>
 @endif
@@ -516,32 +503,32 @@
 {{-- ══════════════════════════════════════════════════════════════
      PREDIKSI AKHIR BULAN
 ══════════════════════════════════════════════════════════════ --}}
-<div class="s-card" style="margin-bottom:10px">
+<div class="s-card mb-10">
     <div class="s-card-header">🔮 Prediksi Akhir Bulan</div>
-    <div style="padding:10px 12px">
+    <div class="pad-sm">
         <table class="mob-table">
             <tr>
-                <td style="color:var(--text3)">Hari aktif</td>
-                <td class="r bold" style="color:#185FA5">{{ $activeDaysDO }} / {{ $daysInMonth }} hari</td>
+                <td class="text-muted">Hari aktif</td>
+                <td class="r bold text-blue-deep">{{ $activeDaysDO }} / {{ $daysInMonth }} hari</td>
             </tr>
             <tr>
-                <td style="color:var(--text3)">Nilai berjalan</td>
-                <td class="r bold" style="color:#c2410c">Rp {{ number_format($grandValue) }}</td>
+                <td class="text-muted">Nilai berjalan</td>
+                <td class="r bold text-orange">Rp {{ number_format($grandValue) }}</td>
             </tr>
             <tr>
-                <td style="color:var(--text3)">Proyeksi akhir bulan</td>
-                <td class="r bold" style="color:#7F77DD">Rp {{ number_format($proyeksiTotal) }}</td>
+                <td class="text-muted">Proyeksi akhir bulan</td>
+                <td class="r bold text-indigo">Rp {{ number_format($proyeksiTotal) }}</td>
             </tr>
             <tr>
-                <td style="color:var(--text3)">Piutang cair (estimasi)</td>
-                <td class="r bold" style="color:var(--melon-dark)">Rp {{ number_format($totalPiutangAll) }}</td>
+                <td class="text-muted">Piutang cair (estimasi)</td>
+                <td class="r bold text-melon">Rp {{ number_format($totalPiutangAll) }}</td>
             </tr>
         </table>
-        <div style="background:#EEEDFE;border-radius:6px;padding:8px 10px;margin-top:8px">
-            <div style="font-size:10px;font-weight:600;color:#534AB7;margin-bottom:4px">Skenario semua lunas</div>
-            <div style="display:flex;justify-content:space-between;font-size:11px">
-                <span style="color:var(--text3)">Kas masuk tambahan</span>
-                <span style="font-weight:600;color:#3C3489">+ Rp {{ number_format($totalPiutangAll) }}</span>
+        <div class="scenario-note-box">
+            <div class="scenario-note-title">Skenario semua lunas</div>
+            <div class="scenario-note-row">
+                <span class="text-muted">Kas masuk tambahan</span>
+                <span class="scenario-note-value">+ Rp {{ number_format($totalPiutangAll) }}</span>
             </div>
         </div>
     </div>
@@ -551,18 +538,18 @@
 {{-- ══════════════════════════════════════════════════════════════
      STATUS DO (DONUT)
 ══════════════════════════════════════════════════════════════ --}}
-<div class="s-card" style="margin-bottom:10px">
+<div class="s-card mb-10">
     <div class="s-card-header">🍩 Status DO</div>
-    <div style="padding:10px 12px">
-        <div style="position:relative;height:120px">
+    <div class="pad-sm">
+        <div class="chart-wrap chart-wrap-sm">
             <canvas id="cStatusBlade"></canvas>
         </div>
-        <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">
+        <div class="donut-legend">
             @foreach([['Lunas', $doLunas, 'badge-green'], ['Sebagian', $doSebagian, 'badge-orange'], ['Belum', $doBelum, 'badge-red']] as [$lbl, $jml, $cls])
                 @if($jml > 0)
-                <div style="display:flex;justify-content:space-between;align-items:center">
+                <div class="donut-legend-row">
                     <span class="badge {{ $cls }}">{{ $lbl }}</span>
-                    <span style="font-size:11px;font-weight:600;color:var(--text2)">{{ $jml }} DO</span>
+                    <span class="bold text-secondary" style="font-size:11px">{{ $jml }} DO</span>
                 </div>
                 @endif
             @endforeach
@@ -574,9 +561,9 @@
 {{-- ══════════════════════════════════════════════════════════════
      VOLUME PER PANGKALAN (BAR CHART)
 ══════════════════════════════════════════════════════════════ --}}
-<div class="s-card" style="margin-bottom:10px">
+<div class="s-card mb-10">
     <div class="s-card-header">📊 Volume per Pangkalan</div>
-    <div style="padding:10px 12px;position:relative;height:180px">
+    <div class="pad-sm chart-wrap chart-wrap-md">
         <canvas id="cPangkBlade"></canvas>
     </div>
 </div>
@@ -585,9 +572,9 @@
 {{-- ══════════════════════════════════════════════════════════════
      INDIKATOR KESEHATAN
 ══════════════════════════════════════════════════════════════ --}}
-<div class="s-card" style="margin-bottom:10px">
+<div class="s-card mb-10">
     <div class="s-card-header">🩺 Indikator Kesehatan</div>
-    <div style="padding:10px 12px;display:flex;flex-direction:column;gap:10px">
+    <div class="pad-sm health-list">
         @php
         $indikators = [
             ['Pelunasan DO',           number_format($rasioLunas, 1).'%', $rasioLunas,     $rasioLunas >= 85    ? '#1D9E75' : ($rasioLunas >= 70    ? '#EF9F27' : '#E24B4A')],
@@ -598,39 +585,39 @@
         @endphp
 
         @foreach($indikators as [$lbl, $val, $bar, $col])
-        <div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-                <span style="font-size:10px;color:var(--text3)">{{ $lbl }}</span>
-                <span style="font-size:11px;font-weight:600;color:{{ $col }}">{{ $val }}</span>
+        <div style="--health-color:{{ $col }}">
+            <div class="health-row-label">
+                <span class="lbl">{{ $lbl }}</span>
+                <span class="val">{{ $val }}</span>
             </div>
-            <div style="height:4px;background:#f0f0f0;border-radius:2px;overflow:hidden">
-                <div style="height:100%;width:{{ min($bar, 100) }}%;background:{{ $col }};border-radius:2px"></div>
+            <div class="health-track">
+                <div class="health-fill" style="width:{{ min($bar, 100) }}%"></div>
             </div>
         </div>
         @endforeach
 
         {{-- Rekomendasi --}}
-        <div style="margin-top:4px;display:flex;flex-direction:column;gap:6px">
+        <div class="notice-stack" style="margin-top:4px">
             @if($rasioLunas < 85)
-            <div style="background:#fef2f2;border-radius:6px;padding:7px 9px;font-size:10px;color:#991b1b">
+            <div class="notice notice-danger">
                 ⚠ Pelunasan {{ number_format($rasioLunas, 1) }}% — tagih <strong>{{ $topPangkalan }}</strong>
             </div>
             @endif
 
             @if($pctCarryover > 30)
-            <div style="background:#fffbeb;border-radius:6px;padding:7px 9px;font-size:10px;color:#92400e">
+            <div class="notice notice-warning">
                 ⚠ {{ $pctCarryover }}% piutang dari carry-over — tinjau batas kredit
             </div>
             @endif
 
             @if($konsentrasiDO > 50)
-            <div style="background:#fffbeb;border-radius:6px;padding:7px 9px;font-size:10px;color:#92400e">
+            <div class="notice notice-warning">
                 ⚠ {{ $konsentrasiDO }}% DO ke 1 pangkalan — diversifikasi outlet
             </div>
             @endif
 
             @if($rasioLunas >= 85 && $pctCarryover <= 30 && $konsentrasiDO <= 50)
-            <div style="background:#f0fdf4;border-radius:6px;padding:7px 9px;font-size:10px;color:#166534">
+            <div class="notice notice-success">
                 ✓ Semua indikator DO baik
             </div>
             @endif
@@ -668,7 +655,7 @@
                     <td class="r">Rp {{ number_format($do->price_per_unit) }}</td>
                     <td class="r bold">Rp {{ number_format($do->qty * $do->price_per_unit) }}</td>
                     <td class="r">Rp {{ number_format($do->paid_amount + $do->transfers->sum('surplus')) }}</td>
-                    <td class="r" style="color:#1d4ed8">Rp {{ number_format($do->transfers->sum('surplus')) }}</td>
+                    <td class="r text-blue">Rp {{ number_format($do->transfers->sum('surplus')) }}</td>
                     <td>
                         @if($do->payment_status === 'paid')
                             <span class="badge badge-green">✓ Lunas</span>
@@ -680,11 +667,11 @@
                     </td>
                     @if($period->status === 'open')
                     <td>
-                        <div style="display:flex;gap:8px">
-                            <a href="{{ route('do.edit', $do) }}" style="font-size:11px;color:#2563eb">Edit</a>
-                            <form method="POST" action="{{ route('do.destroy', $do) }}" style="display:inline" onsubmit="return confirm('Hapus DO ini?')">
+                        <div class="action-links">
+                            <a href="{{ route('do.edit', $do) }}" class="link-edit">Edit</a>
+                            <form method="POST" action="{{ route('do.destroy', $do) }}" class="inline-form" onsubmit="return confirm('Hapus DO ini?')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="link-btn" style="color:#dc2626">Hapus</button>
+                                <button type="submit" class="link-btn danger">Hapus</button>
                             </form>
                         </div>
                     </td>
@@ -692,7 +679,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9" style="text-align:center;padding:20px;color:var(--text3)">Belum ada DO baru untuk periode ini.</td>
+                    <td colspan="9" class="empty-row-cell">Belum ada DO baru untuk periode ini.</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -717,15 +704,15 @@
      CARRY-OVER DO
 ══════════════════════════════════════════════════════════════ --}}
 @if($carryoverDOs->count() > 0)
-<div class="s-card" style="border-left:3px solid #f97316">
-    <div class="s-card-header" style="background:#fff7ed;border-color:#fed7aa;display:flex;justify-content:space-between;align-items:center">
-        <span style="color:#9a3412">↩️ Piutang DO Carry-Over (dari bulan lalu)</span>
+<div class="s-card card-accent-orange">
+    <div class="s-card-header s-card-header-warning">
+        <span>↩️ Piutang DO Carry-Over (dari bulan lalu)</span>
         <span class="badge badge-orange">
             {{ number_format($carryoverDOs->sum('qty')) }} tab · Rp {{ number_format($carryoverDOs->sum(fn ($d) => $d->qty * $d->price_per_unit)) }}
         </span>
     </div>
 
-    <div style="background:#fff7ed;padding:8px 14px;font-size:11px;color:#c2410c;border-bottom:0.5px solid #fed7aa">
+    <div class="warning-note">
         ⚠️ Ini hanya <strong>piutang pembayaran</strong> ke agen dari bulan lalu. Stoknya sudah terhitung di Stok Awal
         ({{ number_format($period->opening_stock) }} tabung) — tidak dihitung ulang.
     </div>
@@ -748,13 +735,13 @@
             <tbody>
                 @foreach($carryoverDOs as $do)
                 <tr>
-                    <td style="color:var(--text3)">{{ $do->do_date->format('d/m/Y') }}</td>
+                    <td class="text-muted">{{ $do->do_date->format('d/m/Y') }}</td>
                     <td class="bold">{{ $do->outlet->name }}</td>
                     <td class="r bold">{{ number_format($do->qty) }}</td>
                     <td class="r">Rp {{ number_format($do->qty * $do->price_per_unit) }}</td>
-                    <td class="r" style="color:var(--melon-dark)">Rp {{ number_format($do->paid_amount + $do->transfers->sum('surplus')) }}</td>
-                    <td class="r" style="color:#1d4ed8">Rp {{ number_format($do->transfers->sum('surplus')) }}</td>
-                    <td class="r bold" style="color:{{ $do->remainingAmount() > 0 ? '#991b1b' : 'var(--melon-dark)' }}">
+                    <td class="r text-melon">Rp {{ number_format($do->paid_amount + $do->transfers->sum('surplus')) }}</td>
+                    <td class="r text-blue">Rp {{ number_format($do->transfers->sum('surplus')) }}</td>
+                    <td class="r bold {{ $do->remainingAmount() > 0 ? 'text-red' : 'text-melon' }}">
                         Rp {{ number_format($do->remainingAmount()) }}
                     </td>
                     <td>
@@ -768,11 +755,11 @@
                     </td>
                     @if($period->status === 'open')
                     <td>
-                        <div style="display:flex;gap:8px">
-                            <a href="{{ route('do.edit', $do) }}" style="font-size:11px;color:#2563eb">Edit</a>
-                            <form method="POST" action="{{ route('do.destroy', $do) }}" style="display:inline" onsubmit="return confirm('Hapus DO carry-over ini?')">
+                        <div class="action-links">
+                            <a href="{{ route('do.edit', $do) }}" class="link-edit">Edit</a>
+                            <form method="POST" action="{{ route('do.destroy', $do) }}" class="inline-form" onsubmit="return confirm('Hapus DO carry-over ini?')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="link-btn" style="color:#dc2626">Hapus</button>
+                                <button type="submit" class="link-btn danger">Hapus</button>
                             </form>
                         </div>
                     </td>
@@ -802,134 +789,134 @@
 
 
 @push('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script>
-(function () {
-    const GRAY = 'rgba(0,0,0,0.06)';
-    const TICK  = { font: { size: 10 }, color: '#9CA3AF' };
-    const fmtK  = v => 'Rp ' + Math.round(Math.abs(v) / 1000).toLocaleString('id') + 'k';
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <script>
+        (function () {
+            const GRAY = 'rgba(0,0,0,0.06)';
+            const TICK  = { font: { size: 10 }, color: '#9CA3AF' };
+            const fmtK  = v => 'Rp ' + Math.round(Math.abs(v) / 1000).toLocaleString('id') + 'k';
 
-    // Data dari PHP
-    const hariLabels  = @json($hariDOLabels);
-    const hariNilai   = @json($hariDONilai);
-    const hariKas     = @json($hariDOBayar);
-    const hariPiutang = @json($hariDOPiutang);
-    const pangkNames  = @json($pangkalanBar->pluck('name'));
-    const pangkNew    = @json($pangkalanBar->pluck('qty_new'));
-    const pangkCarry  = @json($pangkalanBar->pluck('qty_carry'));
+            // Data dari PHP
+            const hariLabels  = @json($hariDOLabels);
+            const hariNilai   = @json($hariDONilai);
+            const hariKas     = @json($hariDOBayar);
+            const hariPiutang = @json($hariDOPiutang);
+            const pangkNames  = @json($pangkalanBar->pluck('name'));
+            const pangkNew    = @json($pangkalanBar->pluck('qty_new'));
+            const pangkCarry  = @json($pangkalanBar->pluck('qty_carry'));
 
-    // ── Chart Nilai DO Harian ─────────────────────────────────────────────────
-    const elDO = document.getElementById('cDOBlade');
-    if (elDO && hariLabels.length) {
-        new Chart(elDO, {
-            data: {
-                labels: hariLabels.map(d => '' + d),
-                datasets: [
-                    {
-                        type: 'bar',
-                        label: 'Nilai DO',
-                        data: hariNilai.map(v => v / 1000),
-                        backgroundColor: '#FAC77580',
-                        borderRadius: 3,
-                        order: 2,
+            // ── Chart Nilai DO Harian ─────────────────────────────────────────────────
+            const elDO = document.getElementById('cDOBlade');
+            if (elDO && hariLabels.length) {
+                new Chart(elDO, {
+                    data: {
+                        labels: hariLabels.map(d => '' + d),
+                        datasets: [
+                            {
+                                type: 'bar',
+                                label: 'Nilai DO',
+                                data: hariNilai.map(v => v / 1000),
+                                backgroundColor: '#FAC77580',
+                                borderRadius: 3,
+                                order: 2,
+                            },
+                            {
+                                type: 'line',
+                                label: 'Terbayar',
+                                data: hariKas.map(v => v / 1000),
+                                borderColor: '#1D9E75',
+                                borderWidth: 2,
+                                pointRadius: 2.5,
+                                tension: 0.3,
+                                fill: false,
+                                backgroundColor: 'transparent',
+                                order: 1,
+                            },
+                            {
+                                type: 'line',
+                                label: 'Piutang',
+                                data: hariPiutang.map(v => v / 1000),
+                                borderColor: '#E24B4A',
+                                borderWidth: 1.5,
+                                borderDash: [4, 3],
+                                pointRadius: 2,
+                                tension: 0.3,
+                                fill: false,
+                                backgroundColor: 'transparent',
+                                order: 1,
+                            },
+                        ],
                     },
-                    {
-                        type: 'line',
-                        label: 'Terbayar',
-                        data: hariKas.map(v => v / 1000),
-                        borderColor: '#1D9E75',
-                        borderWidth: 2,
-                        pointRadius: 2.5,
-                        tension: 0.3,
-                        fill: false,
-                        backgroundColor: 'transparent',
-                        order: 1,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtK(ctx.parsed.y * 1000)}` },
+                            },
+                        },
+                        scales: {
+                            x: { grid: { color: GRAY }, ticks: TICK },
+                            y: {
+                                grid: { color: GRAY },
+                                ticks: { ...TICK, callback: v => v + 'k' },
+                                title: { display: true, text: 'Ribuan Rp', color: '#9CA3AF', font: { size: 10 } },
+                            },
+                        },
                     },
-                    {
-                        type: 'line',
-                        label: 'Piutang',
-                        data: hariPiutang.map(v => v / 1000),
-                        borderColor: '#E24B4A',
-                        borderWidth: 1.5,
-                        borderDash: [4, 3],
-                        pointRadius: 2,
-                        tension: 0.3,
-                        fill: false,
-                        backgroundColor: 'transparent',
-                        order: 1,
-                    },
-                ],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtK(ctx.parsed.y * 1000)}` },
-                    },
-                },
-                scales: {
-                    x: { grid: { color: GRAY }, ticks: TICK },
-                    y: {
-                        grid: { color: GRAY },
-                        ticks: { ...TICK, callback: v => v + 'k' },
-                        title: { display: true, text: 'Ribuan Rp', color: '#9CA3AF', font: { size: 10 } },
-                    },
-                },
-            },
-        });
-    }
+                });
+            }
 
-    // ── Chart Status Donut ────────────────────────────────────────────────────
-    const elStatus = document.getElementById('cStatusBlade');
-    if (elStatus) {
-        new Chart(elStatus, {
-            type: 'doughnut',
-            data: {
-                labels: ['Lunas', 'Sebagian', 'Belum'],
-                datasets: [{
-                    data: [{{ $doLunas }}, {{ $doSebagian }}, {{ $doBelum }}],
-                    backgroundColor: ['#1D9E75', '#EF9F27', '#E24B4A'],
-                    borderWidth: 1,
-                    borderColor: '#fff',
-                }],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '65%',
-                plugins: { legend: { display: false } },
-            },
-        });
-    }
+            // ── Chart Status Donut ────────────────────────────────────────────────────
+            const elStatus = document.getElementById('cStatusBlade');
+            if (elStatus) {
+                new Chart(elStatus, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Lunas', 'Sebagian', 'Belum'],
+                        datasets: [{
+                            data: [{{ $doLunas }}, {{ $doSebagian }}, {{ $doBelum }}],
+                            backgroundColor: ['#1D9E75', '#EF9F27', '#E24B4A'],
+                            borderWidth: 1,
+                            borderColor: '#fff',
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '65%',
+                        plugins: { legend: { display: false } },
+                    },
+                });
+            }
 
-    // ── Chart Volume per Pangkalan ────────────────────────────────────────────
-    const elPangk = document.getElementById('cPangkBlade');
-    if (elPangk && pangkNames.length) {
-        new Chart(elPangk, {
-            type: 'bar',
-            data: {
-                labels: pangkNames,
-                datasets: [
-                    { label: 'DO baru',    data: pangkNew,   backgroundColor: '#FAC77599', borderRadius: 3 },
-                    { label: 'Carry-over', data: pangkCarry, backgroundColor: '#F0997B99', borderRadius: 3 },
-                ],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: true, labels: { font: { size: 10 }, boxWidth: 10, padding: 8 } },
-                    tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} tab` } },
-                },
-                scales: {
-                    x: { grid: { display: false }, ticks: TICK, stacked: false },
-                    y: { grid: { color: GRAY }, ticks: TICK },
-                },
-            },
-        });
-    }
-})();
-</script>
+            // ── Chart Volume per Pangkalan ────────────────────────────────────────────
+            const elPangk = document.getElementById('cPangkBlade');
+            if (elPangk && pangkNames.length) {
+                new Chart(elPangk, {
+                    type: 'bar',
+                    data: {
+                        labels: pangkNames,
+                        datasets: [
+                            { label: 'DO baru',    data: pangkNew,   backgroundColor: '#FAC77599', borderRadius: 3 },
+                            { label: 'Carry-over', data: pangkCarry, backgroundColor: '#F0997B99', borderRadius: 3 },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: true, labels: { font: { size: 10 }, boxWidth: 10, padding: 8 } },
+                            tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} tab` } },
+                        },
+                        scales: {
+                            x: { grid: { display: false }, ticks: TICK, stacked: false },
+                            y: { grid: { color: GRAY }, ticks: TICK },
+                        },
+                    },
+                });
+            }
+        })();
+    </script>
 @endpush

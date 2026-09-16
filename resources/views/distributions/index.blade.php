@@ -1,136 +1,43 @@
 @extends('layouts.app')
 @section('title','Distribusi Harian')
-
+@push('styles')
+    <style>
+        .kpi-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-bottom:14px; }
+        @media (min-width:420px) { .kpi-grid { grid-template-columns:repeat(4, 1fr); } }
+        .kpi-card {
+            background: var(--surface);
+            border: 0.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .kpi-label { font-size:10px; color:var(--text3); font-weight:500; }
+        .kpi-value { font-size:18px; font-weight:700; line-height:1.1; }
+        .kpi-sub   { font-size:10px; color:var(--text3); }
+        .page-title { font-weight:700; }
+        .mob-table th, .mob-table td { border: 1px solid rgba(0,0,0,.03); }
+        .mob-table thead th { border-bottom: 1px solid rgba(0,0,0,.03); }
+        .mob-table .total-row td { border-top: 1px solid rgba(0,0,0,.03); }
+    </style>
+@endpush
 @section('content')
-<style>
-/* ── Page-level overrides ────────────────────────────────── */
-.dist-kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin-bottom: 14px;
-}
-@media (min-width: 420px) { .dist-kpi-grid { grid-template-columns: repeat(4, 1fr); } }
-
-.kpi-card {
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.kpi-label { font-size: 10px; color: var(--text3); font-weight: 500; }
-.kpi-value { font-size: 18px; font-weight: 700; line-height: 1.1; }
-.kpi-sub   { font-size: 10px; color: var(--text3); }
-
-/* indicator bars */
-.ind-row   { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
-.ind-meta  { flex: 1; }
-.ind-title { font-size: 11px; color: var(--text2); }
-.ind-track { width: 100%; height: 5px; background: var(--melon-light); border-radius: 3px; margin-top: 5px; overflow: hidden; }
-.ind-fill  { height: 100%; border-radius: 3px; }
-.ind-right { text-align: right; flex-shrink: 0; }
-.ind-val   { font-size: 13px; font-weight: 700; }
-.ind-note  { font-size: 10px; color: var(--text3); }
-
-/* anomaly / reco pills */
-.pill-box  { display: flex; flex-direction: column; gap: 6px; }
-.pill      { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: 8px; font-size: 11px; }
-.pill-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
-.pill-green  { background: var(--melon-50);   color: var(--melon-deep); border: 0.5px solid var(--border); }
-.pill-red    { background: #fef2f2; color: #991b1b; border: 0.5px solid #fca5a5; }
-.pill-orange { background: #fff7ed; color: #9a3412; border: 0.5px solid #fed7aa; }
-.pill-blue   { background: #eff6ff; color: #1e40af; border: 0.5px solid #bfdbfe; }
-
-/* ranking piutang */
-.rank-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-.rank-table th { background: var(--surface2); color: var(--text3); font-size: 9px; font-weight: 700;
-                text-transform: uppercase; letter-spacing: 0.4px; padding: 7px 10px; text-align: left; }
-.rank-table th.r { text-align: right; }
-.rank-table td   { padding: 9px 10px; border-bottom: 0.5px solid var(--border); font-size: 11px; }
-.rank-table td.r { text-align: right; }
-.rank-table tbody tr:last-child td { border-bottom: none; }
-.rank-num { width: 22px; height: 22px; border-radius: 50%; display: inline-flex;
-            align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #fff; }
-.progress-bar  { width: 100%; height: 4px; background: var(--melon-light); border-radius: 2px; overflow: hidden; margin-top: 4px; }
-.progress-fill { height: 100%; border-radius: 2px; }
-
-/* bulk form */
-.bulk-form  { background: #eff6ff; border: 0.5px solid #bfdbfe; border-radius: var(--radius-sm); padding: 14px; margin-bottom: 14px; }
-.bulk-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.bulk-table th { background: #dbeafe; color: #1e3a5f; font-size: 10px; font-weight: 600; padding: 6px 8px; text-align: left; }
-.bulk-table td { padding: 5px 4px; border-bottom: 0.5px solid #bfdbfe; vertical-align: middle; }
-.bulk-table tbody tr:last-child td { border-bottom: none; }
-
-/* misc */
-.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.pay-form  { display: flex; gap: 5px; margin-top: 5px; align-items: center; }
-.pay-input { border: 0.5px solid var(--border2); border-radius: 6px; padding: 5px 8px; font-size: 11px; width: 100px; font-family: inherit; }
-.pay-btn   { background: var(--melon); color: #fff; border: none; border-radius: 6px; padding: 5px 10px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.grid-hdr  { font-size: 10px; font-weight: 700; color: var(--text2); }
-.grid-sub  { font-size: 9px;  color: var(--text3); font-weight: 400; }
-.chart-title { font-size: 10px; font-weight: 700; color: var(--text3);
-            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
-            display: flex; align-items: center; gap: 6px; }
-.chart-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.legend      { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
-.legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text3); }
-.legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
-.legend-line   { width: 18px; height: 2px; flex-shrink: 0; }
-.page-header   { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.page-title    { font-size: 15px; font-weight: 700; color: var(--text1); }
-.header-acts   { display: flex; gap: 6px; flex-wrap: wrap; }
-.mob-table     { border-collapse: collapse; width: 100%; }
-.mob-table th,
-.mob-table td  { border: 1px solid rgba(0,0,0,.03); }
-.mob-table thead th    { border-bottom: 1px solid rgba(0,0,0,.03); }
-.mob-table .total-row td { border-top: 1px solid rgba(0,0,0,.03); }
-</style>
 
 {{-- ── Shorthand aliases (tidak ada kalkulasi, hanya unpack dari controller) ── --}}
 @php
-$s  = $summaryData;   // ringkasan KPI
-$pr = $projectionData; // proyeksi
+    $s  = $summaryData;   // ringkasan KPI
+    $pr = $projectionData; // proyeksi
 @endphp
 
-<div x-data="{ showForm: false }">
-
 {{-- ══════════════════════════════════════════════════════════
-    PAGE HEADER
-══════════════════════════════════════════════════════════ --}}
-<div class="page-header">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span class="page-title">🚚 Distribusi Harian</span>
-        <form method="GET" action="{{ route('distributions.index') }}" style="display:inline">
-            <select name="period_id" onchange="this.form.submit()"
-                    class="field-select" style="width:auto;padding:6px 10px;font-size:12px;">
-                @foreach($periods as $p)
-                    <option value="{{ $p->id }}" {{ $p->id == $period->id ? 'selected' : '' }}>
-                        {{ $p->label }}
-                    </option>
-                @endforeach
-            </select>
-        </form>
-    </div>
-
-    @if($period->status === 'open')
-    <div class="header-acts">
-        <a href="{{ route('distributions.create', ['period_id' => $period->id]) }}"
-        class="btn-secondary btn-sm" style="background:#fff7ed;color:#9a3412;border-color:#fed7aa;">
-            + Input 1 Baris
-        </a>
-        <button @click="showForm = !showForm" class="btn-primary btn-sm">+ Input Bulk</button>
-    </div>
-    @endif
-</div>
-
-{{-- ══════════════════════════════════════════════════════════
-    BULK INPUT FORM
-══════════════════════════════════════════════════════════ --}}
-<div x-show="showForm" x-cloak x-transition class="bulk-form"
-    x-data="{
+    PAGE HEADER + BULK INPUT FORM
+    (SATU x-data yang sama membungkus tombol toggle & form-nya,
+     supaya showForm konsisten dan form benar-benar tersembunyi
+     sampai tombol diklik — bukan dua scope Alpine terpisah)
+══════════════════════════════════════════════════════════════ --}}
+<div x-data="{
+        showForm: false,
         date: '{{ date('Y-m-d') }}',
         courierId: '{{ $couriers->first()?->id }}',
         rows: [{ customer_id: '', qty: '', price_per_unit: 18000, payment_status: 'paid', paid_amount: '' }],
@@ -148,132 +55,165 @@ $pr = $projectionData; // proyeksi
         totalPiutang() { return this.totalNilai() - this.totalBayar(); }
     }">
 
-    <div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:12px;">📋 Input Distribusi Bulk</div>
-
-    <form method="POST" action="{{ route('distributions.bulk-store') }}">
-        @csrf
-        <input type="hidden" name="period_id" value="{{ $period->id }}">
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-            <div>
-                <label class="field-label">Tanggal</label>
-                <input type="date" name="dist_date" x-model="date" class="field-input" required>
-            </div>
-            <div>
-                <label class="field-label">Kurir</label>
-                <select name="courier_id" x-model="courierId" class="field-select" required>
-                    @foreach($couriers as $c)
-                        <option value="{{ $c->id }}">{{ $c->name }}</option>
+    {{-- Header --}}
+    <div class="page-header-row">
+        <div class="page-header-left">
+            <span class="page-title">🚚 Distribusi Harian</span>
+            <form method="GET" action="{{ route('distributions.index') }}" class="inline-form">
+                <select name="period_id" onchange="this.form.submit()" class="field-select field-select-inline">
+                    @foreach($periods as $p)
+                        <option value="{{ $p->id }}" {{ $p->id == $period->id ? 'selected' : '' }}>
+                            {{ $p->label }}
+                        </option>
                     @endforeach
                 </select>
-            </div>
+            </form>
         </div>
 
-        <div class="scroll-x" style="margin-bottom:10px;">
-            <table class="bulk-table">
-                <thead>
-                    <tr>
-                        <th>Customer</th>
-                        <th style="width:60px;text-align:center;">Qty</th>
-                        <th style="width:100px;text-align:center;">Harga/Tab</th>
-                        <th style="width:100px;">Status</th>
-                        <th style="width:100px;text-align:center;">Bayar (Rp)</th>
-                        <th style="width:28px;"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <template x-for="(row, i) in rows" :key="i">
+        @if($period->status === 'open')
+            <div class="header-acts">
+                <a href="{{ route('distributions.create', ['period_id' => $period->id]) }}"
+                    class="btn-secondary btn-sm btn-warning-outline">
+                        + Input 1 Baris
+                </a>
+                <button type="button" @click="showForm = !showForm" class="btn-primary btn-sm">+ Input Bulk</button>
+            </div>
+        @endif
+    </div>
+
+    {{-- Form bulk — x-show + x-cloak WAJIB ada supaya tersembunyi sejak render awal --}}
+    <div x-show="showForm" x-cloak x-transition class="bulk-form">
+
+        <div class="bulk-form-title">📋 Input Distribusi Bulk</div>
+
+        <form method="POST" action="{{ route('distributions.bulk-store') }}">
+            @csrf
+            <input type="hidden" name="period_id" value="{{ $period->id }}">
+
+            <div class="form-grid-2">
+                <div>
+                    <label class="field-label">Tanggal</label>
+                    <input type="date" name="dist_date" x-model="date" class="field-input" required>
+                </div>
+                <div>
+                    <label class="field-label">Kurir</label>
+                    <select name="courier_id" x-model="courierId" class="field-select" required>
+                        @foreach($couriers as $c)
+                            <option value="{{ $c->id }}">{{ $c->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="scroll-x mb-10">
+                <table class="bulk-table">
+                    <thead>
                         <tr>
-                            <td>
-                                <select :name="'rows['+i+'][customer_id]'" x-model="row.customer_id"
-                                        class="field-select" style="padding:6px 8px;font-size:12px;" required>
-                                    <option value="">-- Customer --</option>
-                                    @foreach($customers as $c)
-                                        <option value="{{ $c->id }}">
-                                            {{ $c->name }}{{ $c->type === 'contract' ? ' ★' : '' }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </td>
-                            <td style="text-align:center;">
-                                <input type="number" :name="'rows['+i+'][qty]'" x-model="row.qty" min="1"
-                                    class="field-input" style="padding:6px 8px;font-size:12px;text-align:center;" required>
-                            </td>
-                            <td>
-                                <input type="number" :name="'rows['+i+'][price_per_unit]'" x-model="row.price_per_unit" min="10000"
-                                    class="field-input" style="padding:6px 8px;font-size:12px;text-align:center;">
-                            </td>
-                            <td>
-                                <select :name="'rows['+i+'][payment_status]'" x-model="row.payment_status"
-                                        class="field-select" style="padding:6px 8px;font-size:12px;">
-                                    <option value="paid">Lunas</option>
-                                    <option value="deferred">Tunda</option>
-                                    <option value="partial">Sebagian</option>
-                                </select>
-                            </td>
-                            <td>
-                                <input type="number" :name="'rows['+i+'][paid_amount]'" x-model="row.paid_amount"
-                                    :disabled="row.payment_status === 'paid'" min="0"
-                                    class="field-input" style="padding:6px 8px;font-size:12px;text-align:center;"
-                                    :style="row.payment_status === 'paid' ? 'background:var(--surface2)' : ''">
-                            </td>
-                            <td style="text-align:center;">
-                                <button type="button" @click="removeRow(i)"
-                                        style="background:none;border:none;color:#ef4444;font-size:18px;line-height:1;cursor:pointer;padding:0;">×</button>
-                            </td>
+                            <th>Customer</th>
+                            <th style="width:60px;text-align:center;">Qty</th>
+                            <th style="width:100px;text-align:center;">Harga/Tab</th>
+                            <th style="width:100px;">Status</th>
+                            <th style="width:100px;text-align:center;">Bayar (Rp)</th>
+                            <th style="width:28px;"></th>
                         </tr>
-                    </template>
-                </tbody>
-            </table>
-        </div>
-        {{-- Ringkasan total sebelum simpan --}}
-        <div style="background:#fff;border:0.5px solid #bfdbfe;border-radius:8px;padding:10px 12px;margin-bottom:10px;
-                    display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
-            <div>
-                <div style="font-size:10px;color:#64748b;">Total Qty</div>
-                <div style="font-size:15px;font-weight:700;color:#1e40af;" x-text="totalQty().toLocaleString('id') + ' tab'"></div>
+                    </thead>
+                    <tbody>
+                        <template x-for="(row, i) in rows" :key="i">
+                            <tr>
+                                <td>
+                                    <select :name="'rows['+i+'][customer_id]'" x-model="row.customer_id"
+                                            class="field-select field-sm" required>
+                                        <option value="">-- Customer --</option>
+                                        @foreach($customers as $c)
+                                            <option value="{{ $c->id }}">
+                                                {{ $c->name }}{{ $c->type === 'contract' ? ' ★' : '' }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td class="text-center">
+                                    <input type="number" :name="'rows['+i+'][qty]'" x-model="row.qty" min="1"
+                                        class="field-input field-sm text-center" required>
+                                </td>
+                                <td>
+                                    <input type="number" :name="'rows['+i+'][price_per_unit]'" x-model="row.price_per_unit" min="10000"
+                                        class="field-input field-sm text-center">
+                                </td>
+                                <td>
+                                    <select :name="'rows['+i+'][payment_status]'" x-model="row.payment_status"
+                                            class="field-select field-sm">
+                                        <option value="paid">Lunas</option>
+                                        <option value="deferred">Tunda</option>
+                                        <option value="partial">Sebagian</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="number" :name="'rows['+i+'][paid_amount]'" x-model="row.paid_amount"
+                                        :disabled="row.payment_status === 'paid'" min="0"
+                                        :class="row.payment_status === 'paid' ? 'field-disabled-bg' : ''"
+                                        class="field-input field-sm text-center">
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" @click="removeRow(i)" class="icon-remove-btn">×</button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
             </div>
-            <div>
-                <div style="font-size:10px;color:#64748b;">Total Nilai</div>
-                <div style="font-size:15px;font-weight:700;color:#1e40af;" x-text="'Rp ' + totalNilai().toLocaleString('id')"></div>
+            {{-- Ringkasan total sebelum simpan --}}
+            <div class="bulk-summary-box">
+                <div>
+                    <div class="bulk-summary-label">Total Qty</div>
+                    <div class="bulk-summary-value text-blue-dark" x-text="totalQty().toLocaleString('id') + ' tab'"></div>
+                </div>
+                <div>
+                    <div class="bulk-summary-label">Total Nilai</div>
+                    <div class="bulk-summary-value text-blue-dark" x-text="'Rp ' + totalNilai().toLocaleString('id')"></div>
+                </div>
+                <div>
+                    <div class="bulk-summary-label">Total Terbayar</div>
+                    <div class="bulk-summary-value text-green" x-text="'Rp ' + totalBayar().toLocaleString('id')"></div>
+                </div>
+                <div>
+                    <div class="bulk-summary-label">Sisa Piutang</div>
+                    <div class="bulk-summary-value"
+                        :class="totalPiutang() > 0 ? 'text-red' : 'text-green'"
+                        x-text="totalPiutang() > 0 ? 'Rp ' + totalPiutang().toLocaleString('id') : '✓ Lunas semua'"></div>
+                </div>
             </div>
-            <div>
-                <div style="font-size:10px;color:#64748b;">Total Terbayar</div>
-                <div style="font-size:15px;font-weight:700;color:#059669;" x-text="'Rp ' + totalBayar().toLocaleString('id')"></div>
+            <div class="row-between">
+                <button type="button" @click="addRow()" class="link-add-row">
+                    + Tambah Baris
+                </button>
+                <button type="submit" class="btn-primary btn-sm">Simpan Semua</button>
             </div>
-            <div>
-                <div style="font-size:10px;color:#64748b;">Sisa Piutang</div>
-                <div style="font-size:15px;font-weight:700;"
-                    :style="totalPiutang() > 0 ? 'color:#dc2626' : 'color:#059669'"
-                    x-text="totalPiutang() > 0 ? 'Rp ' + totalPiutang().toLocaleString('id') : '✓ Lunas semua'"></div>
-            </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-            <button type="button" @click="addRow()"
-                    style="background:none;border:none;font-size:12px;color:#1e40af;cursor:pointer;font-family:inherit;font-weight:500;">
-                + Tambah Baris
-            </button>
-            <button type="submit" class="btn-primary btn-sm">Simpan Semua</button>
-        </div>
-    </form>
+        </form>
+    </div>
 </div>
+
+{{-- ══════════════════════════════════════════════════════════
+    KONTEN LAIN (chart, tabel, dll) — TIDAK perlu Alpine sama
+    sekali, jadi di luar x-data supaya render ringan sejak awal
+    seperti halaman DO.
+══════════════════════════════════════════════════════════════ --}}
 
 {{-- ══════════════════════════════════════════════════════════
     CHART — ANALISIS DISTRIBUSI HARIAN
 ══════════════════════════════════════════════════════════ --}}
 <div class="s-card">
-    <div class="s-card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+    <div class="s-card-header row-between" style="flex-wrap:wrap;">
         <span>📈 Analisis Distribusi Harian</span>
-        <span style="font-size:9px;font-weight:500;color:var(--text3);">
-            <span style="color:var(--melon);">■</span> normal &nbsp;
-            <span style="color:var(--melon-dark);">■</span> tinggi &nbsp;
-            <span style="color:#dc2626;">■</span> rendah
+        <span class="header-legend-note">
+            <span class="text-melon-base">■</span> normal &nbsp;
+            <span class="text-melon">■</span> tinggi &nbsp;
+            <span class="text-red">■</span> rendah
         </span>
     </div>
-    <div style="padding:12px;">
+    <div class="pad-sm">
 
         {{-- KPI chips --}}
-        <div class="dist-kpi-grid">
+        <div class="kpi-grid">
             <div class="kpi-card">
                 <span class="kpi-label">Total Distribusi</span>
                 <span class="kpi-value" style="color:#f10cfd;">{{ number_format($s['allQty']) }}</span>
@@ -292,12 +232,12 @@ $pr = $projectionData; // proyeksi
             <div class="kpi-card">
                 <span class="kpi-label">Stok Tersedia</span>
                 @php $stokTersedia = $period->opening_stock + $totalDoQty - $s['allQty']; @endphp
-                <span class="kpi-value" style="color:var(--melon-dark);">{{ number_format($stokTersedia) }}</span>
+                <span class="kpi-value text-melon">{{ number_format($stokTersedia) }}</span>
                 <span class="kpi-sub">{{ number_format($period->opening_stock) }}+{{ number_format($totalDoQty) }}-{{ number_format($s['allQty']) }}</span>
             </div>
             <div class="kpi-card">
                 <span class="kpi-label">Avg / Hari Aktif</span>
-                <span class="kpi-value" style="color:#1d4ed8;">{{ $s['avgTabHar'] }} tab</span>
+                <span class="kpi-value text-blue">{{ $s['avgTabHar'] }} tab</span>
                 <span class="kpi-sub">{{ $s['activeDays'] }} hari aktif</span>
             </div>
             <div class="kpi-card">
@@ -305,33 +245,32 @@ $pr = $projectionData; // proyeksi
                 <span class="kpi-value" style="color:#7c3aed;">Rp {{ number_format($s['avgHargaC']) }}</span>
                 <span class="kpi-sub">rata-rata bulan ini</span>
             </div>
-            <div class="kpi-card" style="{{ $s['piutang'] > 0 ? 'border-color:#fca5a5;' : '' }}">
+            <div class="kpi-card {{ $s['piutang'] > 0 ? 'border-warn-red' : '' }}">
                 <span class="kpi-label">Sisa Piutang</span>
-                <span class="kpi-value" style="color:{{ $s['piutang'] > 0 ? '#dc2626' : 'var(--melon-dark)' }};">
+                <span class="kpi-value {{ $s['piutang'] > 0 ? 'text-red' : 'text-melon' }}">
                     {{ $s['piutang'] > 0 ? 'Rp '.number_format($s['piutang']) : '✓ Lunas' }}
                 </span>
                 <span class="kpi-sub">belum terbayar</span>
             </div>
-            <div class="kpi-card" style="border-color:#d1fae5;">
+            <div class="kpi-card border-mint">
                 <span class="kpi-label">Total Margin</span>
-                <span class="kpi-value" style="color:#059669;">Rp {{ number_format($s['allMargin']) }}</span>
+                <span class="kpi-value text-green">Rp {{ number_format($s['allMargin']) }}</span>
                 <span class="kpi-sub">tagihan − HPP Rp16.000/tab</span>
             </div>
         </div>
 
         {{-- Chart canvas --}}
-        <div style="position:relative;width:100%;height:220px;">
+        <div class="chart-wrap chart-wrap-xl">
             <canvas id="distChartMain" aria-label="Bar chart distribusi tabung harian"></canvas>
         </div>
-        <div id="anomalyResult" style="margin-top:10px;"></div>
+        <div id="anomalyResult" class="mt-10"></div>
 
         {{-- Data bridge untuk JS --}}
-        <div id="distChartData"
+        <div id="distChartData" class="hidden"
             data-labels='@json($chartData['labels'])'
             data-qty='@json($chartData['qty'])'
             data-val='@json($chartData['val'])'
-            data-paid='@json($chartData['paid'])'
-            style="display:none;"></div>
+            data-paid='@json($chartData['paid'])'></div>
     </div>
 </div>
 
@@ -370,33 +309,33 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
 @endphp
 
 <div class="s-card">
-    <div class="s-card-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <div class="s-card-header row-between">
         <span>Ringkasan Distribusi Harian</span>
-        <span style="font-size:10px;font-weight:400;color:var(--text3);">
+        <span class="text-note">
             {{ $s['activeDays'] }} hari aktif · {{ $daysInMonth }} hari/bln
         </span>
     </div>
-    <div style="padding:12px;">
+    <div class="pad-sm">
 
-        <div class="dist-kpi-grid">
+        <div class="kpi-grid">
             <div class="kpi-card">
                 <span class="kpi-label">Total Tabung</span>
-                <span class="kpi-value" style="color:var(--melon-dark);">{{ number_format($s['allQty']) }} tab</span>
+                <span class="kpi-value text-melon">{{ number_format($s['allQty']) }} tab</span>
                 <span class="kpi-sub">avg {{ $s['avgTabHar'] }} tab/hari · {{ $s['activeDays'] }} hari aktif</span>
             </div>
             <div class="kpi-card">
                 <span class="kpi-label">Total Tagihan</span>
-                <span class="kpi-value" style="color:#1d4ed8;font-size:14px;">Rp {{ number_format($s['allVal']) }}</span>
+                <span class="kpi-value text-blue" style="font-size:14px;">Rp {{ number_format($s['allVal']) }}</span>
                 <span class="kpi-sub">avg Rp {{ number_format($s['avgNilaiH']) }}/hari</span>
             </div>
             <div class="kpi-card">
                 <span class="kpi-label">Kas Diterima</span>
-                <span class="kpi-value" style="color:var(--melon-dark);font-size:14px;">Rp {{ number_format($s['allPaid']) }}</span>
+                <span class="kpi-value text-melon" style="font-size:14px;">Rp {{ number_format($s['allPaid']) }}</span>
                 <span class="kpi-sub">avg Rp {{ number_format($s['avgKasH']) }}/hari</span>
             </div>
-            <div class="kpi-card" style="{{ $s['piutang'] > 0 ? 'border-color:#fca5a5;' : '' }}">
+            <div class="kpi-card {{ $s['piutang'] > 0 ? 'border-warn-red' : '' }}">
                 <span class="kpi-label">Piutang Belum Lunas</span>
-                <span class="kpi-value" style="color:{{ $s['piutang'] > 0 ? '#dc2626' : 'var(--melon-dark)' }};font-size:14px;">
+                <span class="kpi-value {{ $s['piutang'] > 0 ? 'text-red' : 'text-melon' }}" style="font-size:14px;">
                     {{ $s['piutang'] > 0 ? 'Rp '.number_format($s['piutang']) : '✓ Lunas semua' }}
                 </span>
                 <span class="kpi-sub">{{ number_format(100 - $s['rasioLunas'], 1) }}% dari tagihan</span>
@@ -407,12 +346,12 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
         <div class="chart-title">
             <span class="chart-dot" style="background:#1d4ed8;"></span>Nilai Harian (Rp)
         </div>
-        <div class="legend">
-            <span class="legend-item"><span class="legend-swatch" style="background:#bfdbfe;"></span>Nilai tagihan</span>
-            <span class="legend-item"><span class="legend-line" style="background:#059669;"></span>Kas diterima</span>
-            <span class="legend-item"><span class="legend-line" style="background:#dc2626;border-top:2px dashed #dc2626;height:0;"></span>Piutang</span>
+        <div class="chart-legend-row">
+            <span class="legend-item"><span class="legend-dot" style="--legend-color:#bfdbfe"></span>Nilai tagihan</span>
+            <span class="legend-item"><span class="legend-line" style="--legend-color:#059669"></span>Kas diterima</span>
+            <span class="legend-item"><span class="legend-line legend-line-dashed" style="--legend-color:#dc2626"></span>Piutang</span>
         </div>
-        <div style="position:relative;width:100%;height:200px;margin-bottom:14px;">
+        <div class="chart-wrap chart-wrap-lg mb-10">
             <canvas id="cHarianBlade"></canvas>
         </div>
 
@@ -449,15 +388,15 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
                         @endphp
                         <tr>
                             <td><span class="rank-num" style="background:{{ $rColor }};">{{ $i + 1 }}</span></td>
-                            <td style="font-weight:600;color:var(--text1);">
+                            <td class="bold">
                                 {{ $rc['name'] }}
                                 @if($rc['type'] === 'contract') <span style="color:#d97706;">★</span> @endif
                             </td>
-                            <td class="r" style="color:var(--text2);">Rp {{ number_format($rc['tagihan']) }}</td>
-                            <td class="r" style="color:var(--melon-dark);">Rp {{ number_format($rc['bayar']) }}</td>
-                            <td class="r" style="color:{{ $rColor }};font-weight:700;">Rp {{ number_format($rc['piutang']) }}</td>
+                            <td class="r text-secondary">Rp {{ number_format($rc['tagihan']) }}</td>
+                            <td class="r text-melon">Rp {{ number_format($rc['bayar']) }}</td>
+                            <td class="r bold" style="color:{{ $rColor }};">Rp {{ number_format($rc['piutang']) }}</td>
                             <td>
-                                <div style="font-size:9px;color:var(--text3);margin-bottom:3px;">
+                                <div class="text-note" style="margin-bottom:3px;">
                                     {{ $rc['pct_lunas'] }}% · {{ $pctShare }}% total
                                 </div>
                                 <div class="progress-bar">
@@ -478,47 +417,17 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
         </div>
         @endif
 
-        {{-- Chart analisis strategi --}}
-        {{--  <div class="chart-title" style="margin-top:16px;">
-            <span class="chart-dot" style="background:#7c3aed;"></span>Analisis Strategi Distribusi
-        </div>  --}}
-
-        {{--  <div class="col">
-            <div class="card" style="padding:12px;margin-top:10px">
-                <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:8px;">Status pembayaran</div>
-                <div style="position:relative;height:120px;"><canvas id="cDonutBlade"></canvas></div>
-                <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
-                    @foreach([['Lunas',$jmlLunas,'var(--melon)'],['Sebagian',$jmlSebagian,'#3b82f6'],['Belum bayar',$jmlBelum,'#dc2626']] as [$lbl,$jml,$col])
-                        @if($jml > 0)
-                        <div style="display:flex;align-items:center;gap:6px;font-size:10px;">
-                            <span style="width:8px;height:8px;border-radius:2px;background:{{ $col }};flex-shrink:0;"></span>
-                            <span style="color:var(--text3);">{{ $lbl }}</span>
-                            <span style="margin-left:auto;font-weight:600;color:var(--text1);">{{ $jml }}</span>
-                        </div>
-                        @endif
-                    @endforeach
-                </div>
-            </div>
-        </div>  --}}
-        {{--  <div class="col">
-            <div class="card" style="padding:12px;margin-top:10px">
-                <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:8px;">Qty per customer (tab)</div>
-                <div style="position:relative;height:{{ max(120, $custBarNames->count() * 28) }}px;">
-                    <canvas id="cCustBlade"></canvas>
-                </div>
-            </div>
-        </div>  --}}
         <div class="col">
-            <div class="card" style="padding:12px;margin-top:10px">
-                <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:8px;">Avg harga/tab per hari</div>
-                <div style="position:relative;height:120px;"><canvas id="cHargaBlade"></canvas></div>
+            <div class="card card-pad-mt">
+                <div class="text-note" style="margin-bottom:8px;font-weight:600;">Avg harga/tab per hari</div>
+                <div class="chart-wrap chart-wrap-sm"><canvas id="cHargaBlade"></canvas></div>
             </div>
         </div>
 
         {{-- Indikator + Rekomendasi --}}
         <div class="col">
-            <div class="card" style="padding:12px;margin-top:10px">
-                <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:10px;">Indikator Kesehatan</div>
+            <div class="card card-pad-mt">
+                <div class="text-note" style="margin-bottom:10px;font-weight:600;">Indikator Kesehatan</div>
 
                 @php
                 $indikators = [
@@ -543,8 +452,8 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
                 @endforeach
             </div>
 
-            <div class="card" style="padding:12px;margin-top:10px">
-                <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:10px;">Rekomendasi Strategi</div>
+            <div class="card card-pad-mt">
+                <div class="text-note" style="margin-bottom:10px;font-weight:600;">Rekomendasi Strategi</div>
                 <div class="pill-box">
                     @if($s['rasioLunas'] < 90)
                     <div class="pill pill-red">
@@ -586,16 +495,16 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
     PROYEKSI DISTRIBUSI BULANAN
 ══════════════════════════════════════════════════════════ --}}
 <div class="s-card">
-    <div class="s-card-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <div class="s-card-header row-between">
         <span>🔮 Proyeksi Distribusi Bulanan</span>
-        <span style="font-size:10px;color:var(--text3);">per {{ now()->format('d M Y') }}</span>
+        <span class="text-note">per {{ now()->format('d M Y') }}</span>
     </div>
-    <div style="padding:12px;">
+    <div class="pad-sm">
 
-        <div class="dist-kpi-grid">
+        <div class="kpi-grid">
             <div class="kpi-card">
                 <span class="kpi-label">Aktual s.d. hari ini</span>
-                <span class="kpi-value" style="color:#1d4ed8;">{{ number_format($pr['totalAktual']) }} tab</span>
+                <span class="kpi-value text-blue">{{ number_format($pr['totalAktual']) }} tab</span>
                 <span class="kpi-sub">{{ $pr['activeDays'] }} hari aktif</span>
             </div>
             <div class="kpi-card">
@@ -605,7 +514,7 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
             </div>
             <div class="kpi-card">
                 <span class="kpi-label">Avg / hari aktif</span>
-                <span class="kpi-value" style="color:#059669;">{{ number_format($pr['mean'], 1) }} tab</span>
+                <span class="kpi-value text-green">{{ number_format($pr['mean'], 1) }} tab</span>
                 <span class="kpi-sub">±{{ number_format($pr['std'], 1) }} std dev</span>
             </div>
             <div class="kpi-card">
@@ -616,15 +525,15 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
         </div>
 
         {{-- Progress bar --}}
-        <div style="margin-bottom:14px;">
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:5px;">
+        <div class="mb-10" style="margin-bottom:14px;">
+            <div class="row-between" style="font-size:11px;color:var(--text3);margin-bottom:5px;">
                 <span>Progres bulan ini</span>
                 <span>{{ $pr['projPct'] }}%</span>
             </div>
-            <div class="ind-track" style="height:7px;">
-                <div class="ind-fill" style="width:{{ $pr['projPct'] }}%;background:#1d4ed8;"></div>
+            <div class="progress-track" style="height:7px;">
+                <div class="progress-fill" style="width:{{ $pr['projPct'] }}%;background:#1d4ed8;"></div>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:4px;">
+            <div class="row-between" style="font-size:10px;color:var(--text3);margin-top:4px;">
                 <span>Aktual: <strong>{{ number_format($pr['totalAktual']) }}</strong></span>
                 <span>Proyeksi: <strong>{{ number_format($pr['projTren']) }}</strong></span>
             </div>
@@ -638,10 +547,10 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
                 ['Optimis',       $pr['projMaks'], '#059669', 'jika distribusi meningkat'],
             ] as [$sLabel, $sQty, $sCol, $sDesc])
             @php $sPct = $pr['projTren'] > 0 ? min(round($pr['totalAktual'] / max($sQty, 1) * 100), 100) : 0; @endphp
-            <div style="border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;">
-                <div style="font-size:10px;font-weight:600;color:var(--text2);margin-bottom:4px;">{{ $sLabel }}</div>
-                <div style="font-size:17px;font-weight:700;color:{{ $sCol }};">{{ number_format($sQty) }}</div>
-                <div style="font-size:10px;color:var(--text3);">{{ $sDesc }}</div>
+            <div class="scenario-card">
+                <div class="scenario-card-label">{{ $sLabel }}</div>
+                <div class="scenario-card-value" style="color:{{ $sCol }};">{{ number_format($sQty) }}</div>
+                <div class="scenario-card-desc">{{ $sDesc }}</div>
                 <div class="ind-track" style="margin-top:6px;">
                     <div class="ind-fill" style="width:{{ $sPct }}%;background:{{ $sCol }};"></div>
                 </div>
@@ -650,45 +559,45 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
         </div>
 
         {{-- Chart kumulatif --}}
-        <div class="legend">
-            <span class="legend-item"><span class="legend-swatch" style="background:#bfdbfe;"></span>Aktual</span>
-            <span class="legend-item"><span class="legend-line" style="background:#1d4ed8;"></span>Proyeksi tren</span>
-            <span class="legend-item"><span class="legend-line" style="background:#dc2626;border-top:2px dashed #dc2626;height:0;"></span>Min</span>
-            <span class="legend-item"><span class="legend-line" style="background:#059669;border-top:2px dashed #059669;height:0;"></span>Maks</span>
+        <div class="chart-legend-row">
+            <span class="legend-item"><span class="legend-dot" style="--legend-color:#bfdbfe"></span>Aktual</span>
+            <span class="legend-item"><span class="legend-line" style="--legend-color:#1d4ed8"></span>Proyeksi tren</span>
+            <span class="legend-item"><span class="legend-line legend-line-dashed" style="--legend-color:#dc2626"></span>Min</span>
+            <span class="legend-item"><span class="legend-line legend-line-dashed" style="--legend-color:#059669"></span>Maks</span>
         </div>
-        <div style="position:relative;width:100%;height:220px;margin-bottom:14px;">
+        <div class="chart-wrap chart-wrap-xl mb-10">
             <canvas id="cProjBlade"></canvas>
         </div>
 
         {{-- Simulator --}}
-        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px;"
+        <div class="simulator-box"
             x-data="{ extraDays: 0, qtyHari: {{ max((int)$pr['mean'], 10) }}, avgHarga: {{ $s['avgHargaC'] ?? 18000 }} }">
-            <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:10px;">Simulator "Bagaimana Jika?"</div>
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;">
-                <span style="min-width:130px;color:var(--text2);">Hari aktif tambahan</span>
+            <div class="simulator-title">Simulator "Bagaimana Jika?"</div>
+            <div class="range-row">
+                <span class="range-label">Hari aktif tambahan</span>
                 <input type="range" min="0" max="10" step="1" x-model.number="extraDays" style="flex:1;">
-                <span x-text="'+'+extraDays+' hari'" style="min-width:55px;text-align:right;font-weight:600;color:var(--text1);font-size:12px;"></span>
+                <span x-text="'+'+extraDays+' hari'" class="range-value"></span>
             </div>
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;">
-                <span style="min-width:130px;color:var(--text2);">Avg tabung / hari</span>
+            <div class="range-row" style="margin-bottom:10px;">
+                <span class="range-label">Avg tabung / hari</span>
                 <input type="range" min="10" max="200" step="5" x-model.number="qtyHari" style="flex:1;">
-                <span x-text="qtyHari+' tab'" style="min-width:55px;text-align:right;font-weight:600;color:var(--text1);font-size:12px;"></span>
+                <span x-text="qtyHari+' tab'" class="range-value"></span>
             </div>
-            <div style="border-top:0.5px solid var(--border);padding-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="simulator-result-grid">
                 <div>
-                    <div style="font-size:10px;color:var(--text3);">Estimasi total tabung</div>
+                    <div class="simulator-result-label">Estimasi total tabung</div>
                     <div x-text="({{ $pr['totalAktual'] }} + ({{ $pr['estHariSisa'] }} + extraDays) * qtyHari).toLocaleString('id') + ' tab'"
-                        style="font-size:20px;font-weight:700;color:#1d4ed8;"></div>
+                        class="simulator-result-value text-blue"></div>
                 </div>
                 <div>
-                    <div style="font-size:10px;color:var(--text3);">Estimasi nilai</div>
+                    <div class="simulator-result-label">Estimasi nilai</div>
                     <div x-text="'Rp ' + (({{ $pr['totalAktual'] }} + ({{ $pr['estHariSisa'] }} + extraDays) * qtyHari) * avgHarga).toLocaleString('id')"
                         style="font-size:14px;font-weight:700;color:#7c3aed;line-height:1.4;margin-top:4px;"></div>
                 </div>
             </div>
         </div>
 
-        <div style="font-size:10px;color:var(--text3);margin-top:10px;">
+        <div class="text-note mt-10">
             Proyeksi menggunakan rata-rata harian aktual × estimasi hari aktif sisa.
             Confidence interval ±{{ number_format($pr['std'], 1) }} tab/hari (1 std dev).
         </div>
@@ -696,30 +605,26 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
 </div>
 
 {{-- Data bridge untuk chart proyeksi --}}
-<div id="projChartData"
+<div id="projChartData" class="hidden"
     data-labels='@json($pr['chartLabels'])'
     data-aktual='@json($pr['chartAktual'])'
     data-tren='@json($pr['chartTren'])'
     data-min='@json($pr['chartMin'])'
     data-maks='@json($pr['chartMaks'])'
-    data-today="{{ $pr['todayDay'] }}"
-    style="display:none;"></div>
+    data-today="{{ $pr['todayDay'] }}">
+</div>
 
 {{-- ══════════════════════════════════════════════════════════
     REKAP PER CUSTOMER PER TANGGAL
 ══════════════════════════════════════════════════════════ --}}
 @php
-// Kalkulasi avg harga & piutang per hari (butuh $grid, tetap di view karena grid tidak diserialisasi)
-$avgPriceByDay = [];
-for ($day = 1; $day <= $daysInMonth; $day++) {
-    $dq = collect($grid)->sum(fn($days) => $days[$day]['qty'] ?? 0);
-    $dv = collect($grid)->sum(fn($days) => $days[$day]['total_value'] ?? 0);
-    $avgPriceByDay[$day] = $dq > 0 ? round($dv / $dq) : 0;
-}
-$avgPriceTotal = $s['allQty'] > 0 ? round($s['allVal'] / $s['allQty']) : 0;
-$avgQtyPerDay  = $s['activeDays'] > 0 ? round($s['allQty'] / $s['activeDays'], 1) : 0;
-$avgValPerDay  = $s['activeDays'] > 0 ? round($s['allVal'] / $s['activeDays']) : 0;
-$avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) : 0;
+    // avgHarga & selisih per hari sudah dihitung SEKALI di controller
+    // (DistributionController::buildFullDailyBreakdown → $dailyFull), jadi di sini
+    // tidak perlu lagi loop collect($grid)->sum(...) per hari — tinggal array-lookup.
+    $avgPriceTotal = $s['allQty'] > 0 ? round($s['allVal'] / $s['allQty']) : 0;
+    $avgQtyPerDay  = $s['activeDays'] > 0 ? round($s['allQty'] / $s['activeDays'], 1) : 0;
+    $avgValPerDay  = $s['activeDays'] > 0 ? round($s['allVal'] / $s['activeDays']) : 0;
+    $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) : 0;
 @endphp
 
 <div class="s-card">
@@ -728,16 +633,16 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
         <table class="mob-table">
             <thead>
                 <tr>
-                    <th style="min-width:110px;position:sticky;left:0;background:#f8faf8;z-index:10;">Customer</th>
+                    <th class="sticky-col-header-lg min-w-110">Customer</th>
                     @for($d = 1; $d <= $daysInMonth; $d++)
                         <th class="r" style="min-width:28px;">{{ $d }}</th>
                     @endfor
-                    <th class="r" style="background:var(--melon-50);">Tab</th>
-                    <th class="r" style="background:var(--melon-50);">Nilai (Rp)</th>
-                    <th class="r" style="background:var(--melon-50);">Terbayar</th>
-                    <th class="r" style="background:#f5f3ff;">Avg/Tab</th>
-                    <th class="r" style="background:#d1fae5;">Margin</th>
-                    <th class="r" style="background:#fef2f2;">Piutang</th>
+                    <th class="r bg-melon-50">Tab</th>
+                    <th class="r bg-melon-50">Nilai (Rp)</th>
+                    <th class="r bg-melon-50">Terbayar</th>
+                    <th class="r bg-purple-50">Avg/Tab</th>
+                    <th class="r bg-mint-50">Margin</th>
+                    <th class="r bg-red-50">Piutang</th>
                 </tr>
             </thead>
             <tbody>
@@ -749,8 +654,8 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                     $margin    = $customerTotals[$c->id]['margin']     ?? 0;
                     $baseCost = $customerTotals[$c->id]['base_cost'] ?? 0;
                 @endphp
-                <tr style="{{ $c->type === 'contract' ? 'background:#fffbeb;' : '' }}">
-                    <td class="bold" style="position:sticky;left:0;z-index:5;background:{{ $c->type === 'contract' ? '#fffbeb' : '#fff' }};min-width:110px;">
+                <tr class="{{ $c->type === 'contract' ? 'row-contract' : '' }}">
+                    <td class="bold sticky-col-body-lg min-w-110 {{ $c->type === 'contract' ? 'bg-contract' : '' }}">
                         {{ $c->name }}
                         @if($c->type === 'contract') <span style="color:#d97706;">★</span> @endif
                     </td>
@@ -767,7 +672,7 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                         @endif
                     </td>
                     @endfor
-                    <td class="r bold" style="color:{{ $t['qty'] > 0 ? 'var(--melon-dark)' : 'var(--text3)' }};">
+                    <td class="r bold {{ $t['qty'] > 0 ? 'text-melon' : 'text-muted' }}">
                         {{ $t['qty'] > 0 ? number_format($t['qty']) : '-' }}
                     </td>
                     <td class="r">{{ $t['total_value'] > 0 ? 'Rp '.number_format($t['total_value']) : '-' }}</td>
@@ -788,29 +693,26 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
 
                 {{-- Total row --}}
                 <tr class="total-row">
-                    <td style="position:sticky;left:0;background:var(--melon);z-index:5;min-width:110px;">TOTAL</td>
+                    <td class="sticky-col-header-lg min-w-110" style="background:var(--melon);color:#fff;">TOTAL</td>
                     @for($day = 1; $day <= $daysInMonth; $day++)
-                        @php $dq = collect($grid)->sum(fn($days) => $days[$day]['qty'] ?? 0); @endphp
-                        <td class="r" style="font-size:10px;">{{ $dq ?: '-' }}</td>
+                        <td class="r" style="font-size:10px;">{{ $dailyFull[$day]['qty'] ?: '-' }}</td>
                     @endfor
                     <td class="r">{{ number_format($s['allQty']) }}</td>
                     <td class="r">Rp {{ number_format($s['allVal']) }}</td>
                     <td class="r">Rp {{ number_format($s['allPaid']) }}</td>
                     <td class="r">Rp {{ number_format($avgPriceTotal) }}</td>
-                    <td class="r" style="background:#d1fae5;font-weight:700;color:#059669;">
-                        Rp {{ number_format($s['allMargin']) }}
-                    </td>
+                    <td class="r">Rp {{ number_format($s['allMargin']) }}</td>
                     <td class="r">{{ $s['piutang'] > 0 ? 'Rp '.number_format($s['piutang']) : '✓ Lunas' }}</td>
                 </tr>
 
                 {{-- Avg harga/tab per hari --}}
-                <tr style="background:#f5f3ff;">
-                    <td style="position:sticky;left:0;z-index:5;background:#f5f3ff;min-width:110px;">
+                <tr class="bg-purple-50">
+                    <td class="sticky-col-body-lg min-w-110 bg-purple-50">
                         <span class="grid-hdr" style="color:#7c3aed;">Avg Harga/Tab</span>
                         <div class="grid-sub">rata-rata per hari</div>
                     </td>
                     @for($day = 1; $day <= $daysInMonth; $day++)
-                        @php $avg = $avgPriceByDay[$day] ?? 0; @endphp
+                        @php $avg = $dailyFull[$day]['avgHarga'] ?? 0; @endphp
                         <td class="r" style="font-size:10px;color:{{ $avg > 0 ? '#7c3aed' : 'var(--border)' }};font-weight:{{ $avg > 0 ? 600 : 400 }};">
                             {{ $avg > 0 ? number_format($avg / 1000, 1).'k' : '-' }}
                         </td>
@@ -823,53 +725,51 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                     <td class="r" style="color:#7c3aed;font-weight:700;font-size:11px;"></td>
                 </tr>
 
-
                 {{-- Selisih piutang per hari --}}
-                <tr style="background:#fef2f2;">
-                    <td style="position:sticky;left:0;z-index:5;background:#fef2f2;min-width:110px;">
+                <tr class="bg-red-50">
+                    <td class="sticky-col-body-lg min-w-110 bg-red-50">
                         <span class="grid-hdr" style="color:#dc2626;">Selisih (Piutang)</span>
                         <div class="grid-sub">nilai − terbayar</div>
                     </td>
                     @for($day = 1; $day <= $daysInMonth; $day++)
                         @php
-                            $dvD  = collect($grid)->sum(fn($days) => $days[$day]['total_value'] ?? 0);
-                            $dpD  = collect($grid)->sum(fn($days) => $days[$day]['paid_amount']  ?? 0);
-                            $dSel = $dvD - $dpD;
+                            $dvD  = $dailyFull[$day]['val'];
+                            $dSel = $dailyFull[$day]['selisih'];
                         @endphp
                         <td class="r" style="font-size:10px;color:{{ $dSel > 0 ? '#dc2626' : ($dvD > 0 ? 'var(--melon-dark)' : 'var(--border)') }};font-weight:{{ $dSel > 0 || $dvD > 0 ? 600 : 400 }};">
                             {{ $dvD > 0 ? ($dSel > 0 ? number_format($dSel / 1000).'k' : '✓') : '-' }}
                         </td>
                     @endfor
-                    <td class="r muted" style="font-size:10px;">tagihan</td>
-                    <td class="r muted" style="font-size:10px;">terbayar</td>
+                    <td class="r text-muted" style="font-size:10px;">tagihan</td>
+                    <td class="r text-muted" style="font-size:10px;">terbayar</td>
                     <td class="r" style="font-weight:700;font-size:12px;color:{{ $s['piutang'] > 0 ? '#dc2626' : 'var(--melon-dark)' }};">
                         {{ $s['piutang'] > 0 ? 'Rp '.number_format($s['piutang']) : '✓ Lunas' }}
                     </td>
-                    <td class="r muted" style="font-size:10px;"></td>
-                    <td class="r muted" style="font-size:10px;"></td>
-                    <td class="r muted" style="font-size:10px;"></td>
+                    <td class="r text-muted" style="font-size:10px;"></td>
+                    <td class="r text-muted" style="font-size:10px;"></td>
+                    <td class="r text-muted" style="font-size:10px;"></td>
                 </tr>
 
                 {{-- Avg per hari aktif --}}
                 <tr>
-                    <td style="position:sticky;left:0;z-index:5;background:var(--surface2);min-width:110px;">
-                        <span class="grid-hdr" style="color:var(--text2);">Rata-rata/Hari</span>
+                    <td class="sticky-col-body-lg min-w-110 bg-surface2">
+                        <span class="grid-hdr text-secondary">Rata-rata/Hari</span>
                         <div class="grid-sub">dari {{ $s['activeDays'] }} hari aktif</div>
                     </td>
                     @for($day = 1; $day <= $daysInMonth; $day++)
-                        <td class="r" style="font-size:11px;color:var(--text2);background:var(--surface2);">–</td>
+                        <td class="r bg-surface2" style="font-size:11px;color:var(--text2);">–</td>
                     @endfor
-                    <td class="r" style="font-size:11px;color:var(--text2);background:var(--surface2);font-weight:600;">{{ $avgQtyPerDay }} tab</td>
-                    <td class="r" style="font-size:11px;color:var(--text2);background:var(--surface2);">Rp {{ number_format($avgValPerDay) }}</td>
-                    <td class="r" style="font-size:11px;color:var(--text2);background:var(--surface2);">Rp {{ number_format($avgPaidPerDay) }}</td>
-                    <td class="r" style="font-size:11px;color:var(--text2);background:var(--surface2);"></td>
-                    <td class="r" style="font-size:11px;color:var(--text2);background:var(--surface2);"></td>
-                    <td class="r" style="font-size:11px;color:var(--text2);background:var(--surface2);"></td>
+                    <td class="r bg-surface2" style="font-size:11px;color:var(--text2);font-weight:600;">{{ $avgQtyPerDay }} tab</td>
+                    <td class="r bg-surface2" style="font-size:11px;color:var(--text2);">Rp {{ number_format($avgValPerDay) }}</td>
+                    <td class="r bg-surface2" style="font-size:11px;color:var(--text2);">Rp {{ number_format($avgPaidPerDay) }}</td>
+                    <td class="r bg-surface2" style="font-size:11px;color:var(--text2);"></td>
+                    <td class="r bg-surface2" style="font-size:11px;color:var(--text2);"></td>
+                    <td class="r bg-surface2" style="font-size:11px;color:var(--text2);"></td>
                 </tr>
             </tbody>
         </table>
     </div>
-    <div style="padding:8px 12px;font-size:10px;color:var(--text3);display:flex;flex-wrap:wrap;gap:8px;">
+    <div class="table-footnote">
         <span><span style="color:var(--melon-dark);font-weight:600;">Hijau</span> = Lunas</span>
         <span><span style="color:#ca8a04;font-weight:600;">Kuning</span> = Ditunda</span>
         <span><span style="color:#2563eb;font-weight:600;">Biru</span> = Sebagian</span>
@@ -894,7 +794,7 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                     <th class="r">Qty</th>
                     <th class="r">Harga</th>
                     <th class="r">Nilai</th>
-                    <th class="r" style="background:#d1fae5;">Margin</th>
+                    <th class="r bg-mint-50">Margin</th>
                     <th class="r">Bayar</th>
                     <th class="r">Selisih</th>
                     <th>Status</th>
@@ -912,7 +812,7 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                 @forelse($distributions as $dist)
                 @php
                     $distNilai   = $dist->qty * $dist->price_per_unit;
-                    $distMargin   = $distNilai - ($dist->qty * 16000);   // ← tambahkan ini
+                    $distMargin   = $distNilai - ($dist->qty * 16000);
                     $distSelisih = $distNilai - $dist->paid_amount;
 
                     $totalQty     += $dist->qty;
@@ -921,10 +821,10 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                     $totalBayar   += $dist->paid_amount;
                     $totalSelisih += max(0, $distSelisih);
                 @endphp
-                <tr style="{{ $dist->customer->type === 'contract' ? 'background:#fffbeb;' : '' }}">
+                <tr class="{{ $dist->customer->type === 'contract' ? 'row-contract' : '' }}">
                     <td>{{ $dist->dist_date->format('d/m') }}</td>
                     <td class="bold">{{ $dist->customer->name }}</td>
-                    <td style="color:var(--text3);">{{ $dist->courier->name }}</td>
+                    <td class="text-muted">{{ $dist->courier->name }}</td>
                     <td class="r bold">{{ $dist->qty }}</td>
                     <td class="r">{{ number_format($dist->price_per_unit) }}</td>
                     <td class="r bold">{{ number_format($distNilai) }}</td>
@@ -946,14 +846,14 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                     </td>
                     @if($period->status === 'open')
                     <td>
-                        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                        <div class="action-links action-links-wrap">
                             <a href="{{ route('distributions.edit', $dist) }}" class="link-btn-sm">Edit</a>
                             @if(in_array($dist->payment_status, ['deferred','partial']))
                                 <button onclick="document.getElementById('pay-{{ $dist->id }}').classList.toggle('hidden')"
                                         class="link-btn-sm" style="color:var(--melon-dark);">Bayar</button>
                             @endif
                             <form method="POST" action="{{ route('distributions.destroy', $dist) }}"
-                                style="display:inline;" onsubmit="return confirm('Hapus?')">
+                                class="inline-form" onsubmit="return confirm('Hapus?')">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="link-btn-sm" style="color:#dc2626;">Hapus</button>
                             </form>
@@ -973,10 +873,10 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="10" style="text-align:center;padding:24px;color:var(--text3);">Belum ada distribusi.</td>
+                    <td colspan="10" class="empty-row-cell">Belum ada distribusi.</td>
                 </tr>
                 @endforelse
-                <tr style="background:#f9fafb;font-weight:700;border-top:2px solid #e5e7eb;">
+                <tr class="total-row-light">
                     <td colspan="3" class="r">TOTAL</td>
                     <td class="r">{{ number_format($totalQty) }}</td>
                     <td></td>
@@ -995,299 +895,296 @@ $avgPaidPerDay = $s['activeDays'] > 0 ? round($s['allPaid'] / $s['activeDays']) 
     </div>
 </div>
 
-</div>
 @endsection
 
 @push('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script>
-(function () {
-    /* ── Shared style tokens ── */
-    const cs     = getComputedStyle(document.documentElement);
-    const GREEN  = cs.getPropertyValue('--melon').trim()      || '#43A047';
-    const GDARK  = cs.getPropertyValue('--melon-dark').trim() || '#2E7D32';
-    const GDEEP  = cs.getPropertyValue('--melon-deep').trim() || '#1B5E20';
-    const RED    = '#dc2626';
-    const BLUE   = '#2563eb';
-    const GRAY   = 'rgba(0,0,0,0.05)';
-    const TICK   = { font: { size: 10 }, color: '#9CA3AF' };
-    const fmtRp  = v => 'Rp ' + Math.round(Math.abs(v) / 1000).toLocaleString('id') + 'k';
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <script>
+        (function () {
+            /* ── Shared style tokens ── */
+            const cs     = getComputedStyle(document.documentElement);
+            const GREEN  = cs.getPropertyValue('--melon').trim()      || '#43A047';
+            const GDARK  = cs.getPropertyValue('--melon-dark').trim() || '#2E7D32';
+            const GDEEP  = cs.getPropertyValue('--melon-deep').trim() || '#1B5E20';
+            const RED    = '#dc2626';
+            const BLUE   = '#2563eb';
+            const GRAY   = 'rgba(0,0,0,0.05)';
+            const TICK   = { font: { size: 10 }, color: '#9CA3AF' };
+            const fmtRp  = v => 'Rp ' + Math.round(Math.abs(v) / 1000).toLocaleString('id') + 'k';
 
-    /* ── Helpers ── */
-    function stdDev(arr) {
-        if (arr.length < 2) return 0;
-        const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
-        return Math.sqrt(arr.map(x => (x - mean) ** 2).reduce((a, b) => a + b, 0) / arr.length);
-    }
-
-    /* ════════════════════════════════
-    1. BAR CHART — distribusi harian
-    ════════════════════════════════ */
-    const elMain = document.getElementById('distChartData');
-    if (elMain) {
-        const labels = JSON.parse(elMain.dataset.labels);
-        const qty    = JSON.parse(elMain.dataset.qty);
-        const val    = JSON.parse(elMain.dataset.val);
-        const paid   = JSON.parse(elMain.dataset.paid);
-
-        if (labels.length) {
-            const mean = qty.reduce((a, b) => a + b, 0) / qty.length;
-            const std  = stdDev(qty);
-
-            const bgColors  = qty.map(q =>
-                std > 0 && q > mean + 1.5 * std ? GDEEP + 'cc' :
-                std > 0 && q < mean - 1.5 * std ? RED   + 'cc' :
-                BLUE + 'cc'
-            );
-            const piutangK = val.map((v, i) => Math.round((v - paid[i]) / 1000));
-
-            new Chart(document.getElementById('distChartMain'), {
-                type: 'bar',
-                data: {
-                    labels: labels.map(l => 'Tgl ' + l),
-                    datasets: [
-                        { label: 'Tabung',          data: qty,      backgroundColor: bgColors,  borderRadius: 4, order: 2 },
-                        { label: 'Piutang (rb Rp)', data: piutangK, type: 'line',
-                        borderColor: RED, backgroundColor: 'transparent',
-                        pointBackgroundColor: piutangK.map(p => p > 0 ? RED : GREEN),
-                        pointRadius: piutangK.map(p => p > 0 ? 4 : 3),
-                        tension: 0.35, yAxisID: 'y2', order: 1, borderWidth: 1.5 },
-                    ],
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { callbacks: { label(ctx) {
-                            if (ctx.datasetIndex === 0) {
-                                const z = std > 0 ? ((ctx.parsed.y - mean) / std).toFixed(1) : '0.0';
-                                return `Tabung: ${ctx.parsed.y}  (z=${z})`;
-                            }
-                            return `Piutang: Rp ${(ctx.parsed.y * 1000).toLocaleString('id-ID')}`;
-                        }}},
-                    },
-                    scales: {
-                        x:  { ticks: { ...TICK, autoSkip: true, maxTicksLimit: 16, maxRotation: 0 }, grid: { display: false } },
-                        y:  { beginAtZero: true, ticks: TICK, title: { display: true, text: 'Tabung',         font: { size: 10 }, color: '#888' } },
-                        y2: { position: 'right', beginAtZero: true, ticks: TICK,
-                            title: { display: true, text: 'Piutang (rb Rp)', font: { size: 10 }, color: RED },
-                            grid: { drawOnChartArea: false } },
-                    },
-                },
-            });
-
-            /* Anomali */
-            const anomalies = [];
-            qty.forEach((q, i) => {
-                const z = std > 0 ? (q - mean) / std : 0;
-                if (z >  1.5) anomalies.push({ type: 'high', tgl: labels[i], msg: `Distribusi <strong>tinggi</strong> (${q} tab, z=${z.toFixed(1)})` });
-                if (z < -1.5) anomalies.push({ type: 'low',  tgl: labels[i], msg: `Distribusi <strong>rendah</strong> (${q} tab, z=${z.toFixed(1)})` });
-            });
-            val.forEach((v, i) => {
-                const pct = v > 0 ? Math.round((v - paid[i]) / v * 100) : 0;
-                if (pct > 50) anomalies.push({ type: 'debt', tgl: labels[i], msg: `Piutang besar — <strong>${pct}%</strong> belum terbayar` });
-            });
-
-            const box = document.getElementById('anomalyResult');
-            if (box) {
-                const clsMap = { high: 'pill-green', low: 'pill-red', debt: 'pill-orange' };
-                box.innerHTML = anomalies.length
-                    ? `<div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:6px;">⚠ Perlu perhatian:</div>
-                    <div class="pill-box">${anomalies.map(a =>
-                        `<div class="pill ${clsMap[a.type]}"><span class="pill-icon">!</span><span>Tgl ${a.tgl}: ${a.msg}</span></div>`
-                    ).join('')}</div>`
-                    : `<div class="pill pill-green"><span class="pill-icon">✓</span><span>Distribusi normal — tidak ada anomali signifikan bulan ini.</span></div>`;
+            /* ── Helpers ── */
+            function stdDev(arr) {
+                if (arr.length < 2) return 0;
+                const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+                return Math.sqrt(arr.map(x => (x - mean) ** 2).reduce((a, b) => a + b, 0) / arr.length);
             }
-        }
-    }
 
-    /* ════════════════════════════════
-    2. CHART NILAI HARIAN
-    ════════════════════════════════ */
-    const hariLabels  = @json($s['hariLabels']);
-    const hariNilai   = @json($s['hariNilai']);
-    const hariKas     = @json($s['hariKas']);
-    const hariPiutang = @json($s['hariPiutang']);
-    const hariHarga   = @json($s['hariHarga']);
-    const custNames   = @json($custBarNames->pluck('name'));
-    const custQty     = @json($custBarNames->pluck('qty'));
-    const custTypes   = @json($custBarNames->pluck('type'));
+            /* ════════════════════════════════
+            1. BAR CHART — distribusi harian
+            ════════════════════════════════ */
+            const elMain = document.getElementById('distChartData');
+            if (elMain) {
+                const labels = JSON.parse(elMain.dataset.labels);
+                const qty    = JSON.parse(elMain.dataset.qty);
+                const val    = JSON.parse(elMain.dataset.val);
+                const paid   = JSON.parse(elMain.dataset.paid);
 
-    if (document.getElementById('cHarianBlade') && hariLabels.length) {
-        new Chart(document.getElementById('cHarianBlade'), {
-            data: {
-                labels: hariLabels.map(d => '' + d),
-                datasets: [
-                    { type: 'bar',  label: 'Nilai tagihan', data: hariNilai.map(v => v / 1000),   backgroundColor: '#bfdbfe99', borderRadius: 3, order: 2 },
-                    { type: 'line', label: 'Kas diterima',  data: hariKas.map(v => v / 1000),     borderColor: '#059669', borderWidth: 2, pointRadius: 2.5, tension: 0.3, fill: false, backgroundColor: 'transparent', order: 1 },
-                    { type: 'line', label: 'Piutang',       data: hariPiutang.map(v => v / 1000), borderColor: RED,       borderWidth: 1.5, borderDash: [4, 3], pointRadius: 2, tension: 0.3, fill: false, backgroundColor: 'transparent', order: 1 },
-                ],
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtRp(ctx.parsed.y * 1000)}` } } },
-                scales: {
-                    x: { grid: { color: GRAY }, ticks: TICK },
-                    y: { grid: { color: GRAY }, ticks: { ...TICK, callback: v => v + 'k' }, title: { display: true, text: 'Ribuan Rp', color: '#9CA3AF', font: { size: 10 } } },
-                },
-            },
-        });
-    }
+                if (labels.length) {
+                    const mean = qty.reduce((a, b) => a + b, 0) / qty.length;
+                    const std  = stdDev(qty);
 
-    /* ════════════════════════════════
-    3. DONUT STATUS PEMBAYARAN
-    ════════════════════════════════ */
-    if (document.getElementById('cDonutBlade')) {
-        new Chart(document.getElementById('cDonutBlade'), {
-            type: 'doughnut',
-            data: {
-                labels: ['Lunas', 'Sebagian', 'Belum bayar'],
-                datasets: [{ data: [{{ $jmlLunas }}, {{ $jmlSebagian }}, {{ $jmlBelum }}],
-                    backgroundColor: [GREEN, '#3b82f6', RED], borderWidth: 1, borderColor: '#fff' }],
-            },
-            options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } },
-        });
-    }
+                    const bgColors  = qty.map(q =>
+                        std > 0 && q > mean + 1.5 * std ? GDEEP + 'cc' :
+                        std > 0 && q < mean - 1.5 * std ? RED   + 'cc' :
+                        BLUE + 'cc'
+                    );
+                    const piutangK = val.map((v, i) => Math.round((v - paid[i]) / 1000));
 
-    /* ════════════════════════════════
-    4. BAR CUSTOMER QTY
-    ════════════════════════════════ */
-    if (document.getElementById('cCustBlade') && custNames.length) {
-        const maxQty  = Math.max(...custQty);
-        const useLog  = maxQty / Math.min(...custQty.filter(v => v > 0)) > 5;
-
-        new Chart(document.getElementById('cCustBlade'), {
-            type: 'bar',
-            data: {
-                labels: custNames.map(n => n.split(' ').slice(0, 2).join(' ')),
-                datasets: [{
-                    label: 'Tabung',
-                    data: custQty,
-                    backgroundColor: custQty.map((q, i) => {
-                        const ratio = q / maxQty;
-                        if (custTypes[i] === 'contract') return '#d9770699';
-                        if (ratio >= 0.7) return '#1d4ed8cc';
-                        if (ratio >= 0.4) return '#3b82f6bb';
-                        if (ratio >= 0.2) return '#60a5fa99';
-                        return '#93c5fd88';
-                    }),
-                    borderRadius: 4,
-                    borderSkipped: false,
-                }],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: ctx => {
-                                const pct = maxQty > 0 ? ((ctx.parsed.x / maxQty) * 100).toFixed(1) : 0;
-                                return `${ctx.parsed.x.toLocaleString('id')} tab (${pct}% dari terbanyak)`;
-                            }
-                        }
-                    },
-                    // label nilai langsung di bar
-                    datalabels: false,
-                },
-                scales: {
-                    x: {
-                        type: useLog ? 'logarithmic' : 'linear',
-                        grid: { color: 'rgba(0,0,0,0.05)' },
-                        ticks: {
-                            ...TICK,
-                            callback: v => v >= 1000 ? (v/1000).toFixed(v%1000===0?0:1)+'k' : v
+                    new Chart(document.getElementById('distChartMain'), {
+                        type: 'bar',
+                        data: {
+                            labels: labels.map(l => 'Tgl ' + l),
+                            datasets: [
+                                { label: 'Tabung',          data: qty,      backgroundColor: bgColors,  borderRadius: 4, order: 2 },
+                                { label: 'Piutang (rb Rp)', data: piutangK, type: 'line',
+                                borderColor: RED, backgroundColor: 'transparent',
+                                pointBackgroundColor: piutangK.map(p => p > 0 ? RED : GREEN),
+                                pointRadius: piutangK.map(p => p > 0 ? 4 : 3),
+                                tension: 0.35, yAxisID: 'y2', order: 1, borderWidth: 1.5 },
+                            ],
                         },
-                        title: {
-                            display: useLog,
-                            text: useLog ? 'skala log' : '',
-                            color: '#9CA3AF',
-                            font: { size: 9 }
-                        }
-                    },
-                    y: {
-                        grid: { display: false },
-                        ticks: { ...TICK, font: { size: 9 } }
-                    },
-                },
-                // tampilkan nilai di ujung bar via afterDraw plugin
-                animation: {
-                    onComplete(ctx) {
-                        const chart = ctx.chart;
-                        const { ctx: c, data } = chart;
-                        c.save();
-                        c.font = '600 9px sans-serif';
-                        c.fillStyle = '#374151';
-                        c.textBaseline = 'middle';
-                        chart.getDatasetMeta(0).data.forEach((bar, i) => {
-                            const val = data.datasets[0].data[i];
-                            const x   = bar.x + 4;
-                            const y   = bar.y;
-                            const pct = maxQty > 0 ? ((val / maxQty) * 100).toFixed(0) : 0;
-                            c.fillText(`${val.toLocaleString('id')} (${pct}%)`, x, y);
-                        });
-                        c.restore();
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: { callbacks: { label(ctx) {
+                                    if (ctx.datasetIndex === 0) {
+                                        const z = std > 0 ? ((ctx.parsed.y - mean) / std).toFixed(1) : '0.0';
+                                        return `Tabung: ${ctx.parsed.y}  (z=${z})`;
+                                    }
+                                    return `Piutang: Rp ${(ctx.parsed.y * 1000).toLocaleString('id-ID')}`;
+                                }}},
+                            },
+                            scales: {
+                                x:  { ticks: { ...TICK, autoSkip: true, maxTicksLimit: 16, maxRotation: 0 }, grid: { display: false } },
+                                y:  { beginAtZero: true, ticks: TICK, title: { display: true, text: 'Tabung',         font: { size: 10 }, color: '#888' } },
+                                y2: { position: 'right', beginAtZero: true, ticks: TICK,
+                                    title: { display: true, text: 'Piutang (rb Rp)', font: { size: 10 }, color: RED },
+                                    grid: { drawOnChartArea: false } },
+                            },
+                        },
+                    });
+
+                    /* Anomali */
+                    const anomalies = [];
+                    qty.forEach((q, i) => {
+                        const z = std > 0 ? (q - mean) / std : 0;
+                        if (z >  1.5) anomalies.push({ type: 'high', tgl: labels[i], msg: `Distribusi <strong>tinggi</strong> (${q} tab, z=${z.toFixed(1)})` });
+                        if (z < -1.5) anomalies.push({ type: 'low',  tgl: labels[i], msg: `Distribusi <strong>rendah</strong> (${q} tab, z=${z.toFixed(1)})` });
+                    });
+                    val.forEach((v, i) => {
+                        const pct = v > 0 ? Math.round((v - paid[i]) / v * 100) : 0;
+                        if (pct > 50) anomalies.push({ type: 'debt', tgl: labels[i], msg: `Piutang besar — <strong>${pct}%</strong> belum terbayar` });
+                    });
+
+                    const box = document.getElementById('anomalyResult');
+                    if (box) {
+                        const clsMap = { high: 'pill-green', low: 'pill-red', debt: 'pill-orange' };
+                        box.innerHTML = anomalies.length
+                            ? `<div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:6px;">⚠ Perlu perhatian:</div>
+                            <div class="pill-box">${anomalies.map(a =>
+                                `<div class="pill ${clsMap[a.type]}"><span class="pill-icon">!</span><span>Tgl ${a.tgl}: ${a.msg}</span></div>`
+                            ).join('')}</div>`
+                            : `<div class="pill pill-green"><span class="pill-icon">✓</span><span>Distribusi normal — tidak ada anomali signifikan bulan ini.</span></div>`;
                     }
                 }
-            },
-        });
-    }
+            }
 
-    /* ════════════════════════════════
-    5. LINE AVG HARGA PER HARI
-    ════════════════════════════════ */
-    if (document.getElementById('cHargaBlade') && hariLabels.length) {
-        new Chart(document.getElementById('cHargaBlade'), {
-            type: 'line',
-            data: {
-                labels: hariLabels.map(d => '' + d),
-                datasets: [{ label: 'Avg harga/tab', data: hariHarga,
-                    borderColor: '#7c3aed', borderWidth: 2, pointRadius: 2, tension: 0.3,
-                    fill: true, backgroundColor: '#7c3aed11' }],
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `Rp ${Math.round(ctx.parsed.y).toLocaleString('id')}/tab` } } },
-                scales: {
-                    x: { grid: { display: false }, ticks: TICK },
-                    y: { grid: { color: GRAY }, ticks: { ...TICK, callback: v => 'Rp ' + Math.round(v / 1000) + 'k' } },
-                },
-            },
-        });
-    }
+            /* ════════════════════════════════
+            2. CHART NILAI HARIAN
+            ════════════════════════════════ */
+            const hariLabels  = @json($s['hariLabels']);
+            const hariNilai   = @json($s['hariNilai']);
+            const hariKas     = @json($s['hariKas']);
+            const hariPiutang = @json($s['hariPiutang']);
+            const hariHarga   = @json($s['hariHarga']);
+            const custNames   = @json($custBarNames->pluck('name'));
+            const custQty     = @json($custBarNames->pluck('qty'));
+            const custTypes   = @json($custBarNames->pluck('type'));
 
-    /* ════════════════════════════════
-    6. PROYEKSI KUMULATIF
-    ════════════════════════════════ */
-    const elProj = document.getElementById('projChartData');
-    if (elProj) {
-        new Chart(document.getElementById('cProjBlade'), {
-            data: {
-                labels: JSON.parse(elProj.dataset.labels),
-                datasets: [
-                    { type: 'bar',  label: 'Aktual (kumulatif)', data: JSON.parse(elProj.dataset.aktual), backgroundColor: '#bfdbfe', borderRadius: 2, order: 3 },
-                    { type: 'line', label: 'Proyeksi tren',      data: JSON.parse(elProj.dataset.tren),   borderColor: '#1d4ed8', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: false, order: 1 },
-                    { type: 'line', label: 'Min',                data: JSON.parse(elProj.dataset.min),    borderColor: '#dc2626', borderWidth: 1.5, borderDash: [4, 3], pointRadius: 0, tension: 0.4, fill: false, order: 2 },
-                    { type: 'line', label: 'Maks',               data: JSON.parse(elProj.dataset.maks),   borderColor: '#059669', borderWidth: 1.5, borderDash: [4, 3], pointRadius: 0, tension: 0.4, fill: false, order: 2 },
-                ],
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { callbacks: { label: ctx => ctx.parsed.y === null ? null : `${ctx.dataset.label}: ${Math.round(ctx.parsed.y).toLocaleString('id-ID')} tab` } },
-                },
-                scales: {
-                    x: { ticks: { font: { size: 10 }, color: '#9CA3AF', autoSkip: true, maxTicksLimit: 15 }, grid: { display: false } },
-                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' },
-                        ticks: { font: { size: 10 }, color: '#9CA3AF', callback: v => Number.isInteger(v) ? v.toLocaleString('id') : '' } },
-                },
-            },
-        });
-    }
-})();
-</script>
+            if (document.getElementById('cHarianBlade') && hariLabels.length) {
+                new Chart(document.getElementById('cHarianBlade'), {
+                    data: {
+                        labels: hariLabels.map(d => '' + d),
+                        datasets: [
+                            { type: 'bar',  label: 'Nilai tagihan', data: hariNilai.map(v => v / 1000),   backgroundColor: '#bfdbfe99', borderRadius: 3, order: 2 },
+                            { type: 'line', label: 'Kas diterima',  data: hariKas.map(v => v / 1000),     borderColor: '#059669', borderWidth: 2, pointRadius: 2.5, tension: 0.3, fill: false, backgroundColor: 'transparent', order: 1 },
+                            { type: 'line', label: 'Piutang',       data: hariPiutang.map(v => v / 1000), borderColor: RED,       borderWidth: 1.5, borderDash: [4, 3], pointRadius: 2, tension: 0.3, fill: false, backgroundColor: 'transparent', order: 1 },
+                        ],
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtRp(ctx.parsed.y * 1000)}` } } },
+                        scales: {
+                            x: { grid: { color: GRAY }, ticks: TICK },
+                            y: { grid: { color: GRAY }, ticks: { ...TICK, callback: v => v + 'k' }, title: { display: true, text: 'Ribuan Rp', color: '#9CA3AF', font: { size: 10 } } },
+                        },
+                    },
+                });
+            }
+
+            /* ════════════════════════════════
+            3. DONUT STATUS PEMBAYARAN
+            ════════════════════════════════ */
+            if (document.getElementById('cDonutBlade')) {
+                new Chart(document.getElementById('cDonutBlade'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Lunas', 'Sebagian', 'Belum bayar'],
+                        datasets: [{ data: [{{ $jmlLunas }}, {{ $jmlSebagian }}, {{ $jmlBelum }}],
+                            backgroundColor: [GREEN, '#3b82f6', RED], borderWidth: 1, borderColor: '#fff' }],
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } },
+                });
+            }
+
+            /* ════════════════════════════════
+            4. BAR CUSTOMER QTY
+            ════════════════════════════════ */
+            if (document.getElementById('cCustBlade') && custNames.length) {
+                const maxQty  = Math.max(...custQty);
+                const useLog  = maxQty / Math.min(...custQty.filter(v => v > 0)) > 5;
+
+                new Chart(document.getElementById('cCustBlade'), {
+                    type: 'bar',
+                    data: {
+                        labels: custNames.map(n => n.split(' ').slice(0, 2).join(' ')),
+                        datasets: [{
+                            label: 'Tabung',
+                            data: custQty,
+                            backgroundColor: custQty.map((q, i) => {
+                                const ratio = q / maxQty;
+                                if (custTypes[i] === 'contract') return '#d9770699';
+                                if (ratio >= 0.7) return '#1d4ed8cc';
+                                if (ratio >= 0.4) return '#3b82f6bb';
+                                if (ratio >= 0.2) return '#60a5fa99';
+                                return '#93c5fd88';
+                            }),
+                            borderRadius: 4,
+                            borderSkipped: false,
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => {
+                                        const pct = maxQty > 0 ? ((ctx.parsed.x / maxQty) * 100).toFixed(1) : 0;
+                                        return `${ctx.parsed.x.toLocaleString('id')} tab (${pct}% dari terbanyak)`;
+                                    }
+                                }
+                            },
+                            datalabels: false,
+                        },
+                        scales: {
+                            x: {
+                                type: useLog ? 'logarithmic' : 'linear',
+                                grid: { color: 'rgba(0,0,0,0.05)' },
+                                ticks: {
+                                    ...TICK,
+                                    callback: v => v >= 1000 ? (v/1000).toFixed(v%1000===0?0:1)+'k' : v
+                                },
+                                title: {
+                                    display: useLog,
+                                    text: useLog ? 'skala log' : '',
+                                    color: '#9CA3AF',
+                                    font: { size: 9 }
+                                }
+                            },
+                            y: {
+                                grid: { display: false },
+                                ticks: { ...TICK, font: { size: 9 } }
+                            },
+                        },
+                        animation: {
+                            onComplete(ctx) {
+                                const chart = ctx.chart;
+                                const { ctx: c, data } = chart;
+                                c.save();
+                                c.font = '600 9px sans-serif';
+                                c.fillStyle = '#374151';
+                                c.textBaseline = 'middle';
+                                chart.getDatasetMeta(0).data.forEach((bar, i) => {
+                                    const val = data.datasets[0].data[i];
+                                    const x   = bar.x + 4;
+                                    const y   = bar.y;
+                                    const pct = maxQty > 0 ? ((val / maxQty) * 100).toFixed(0) : 0;
+                                    c.fillText(`${val.toLocaleString('id')} (${pct}%)`, x, y);
+                                });
+                                c.restore();
+                            }
+                        }
+                    },
+                });
+            }
+
+            /* ════════════════════════════════
+            5. LINE AVG HARGA PER HARI
+            ════════════════════════════════ */
+            if (document.getElementById('cHargaBlade') && hariLabels.length) {
+                new Chart(document.getElementById('cHargaBlade'), {
+                    type: 'line',
+                    data: {
+                        labels: hariLabels.map(d => '' + d),
+                        datasets: [{ label: 'Avg harga/tab', data: hariHarga,
+                            borderColor: '#7c3aed', borderWidth: 2, pointRadius: 2, tension: 0.3,
+                            fill: true, backgroundColor: '#7c3aed11' }],
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `Rp ${Math.round(ctx.parsed.y).toLocaleString('id')}/tab` } } },
+                        scales: {
+                            x: { grid: { display: false }, ticks: TICK },
+                            y: { grid: { color: GRAY }, ticks: { ...TICK, callback: v => 'Rp ' + Math.round(v / 1000) + 'k' } },
+                        },
+                    },
+                });
+            }
+
+            /* ════════════════════════════════
+            6. PROYEKSI KUMULATIF
+            ════════════════════════════════ */
+            const elProj = document.getElementById('projChartData');
+            if (elProj) {
+                new Chart(document.getElementById('cProjBlade'), {
+                    data: {
+                        labels: JSON.parse(elProj.dataset.labels),
+                        datasets: [
+                            { type: 'bar',  label: 'Aktual (kumulatif)', data: JSON.parse(elProj.dataset.aktual), backgroundColor: '#bfdbfe', borderRadius: 2, order: 3 },
+                            { type: 'line', label: 'Proyeksi tren',      data: JSON.parse(elProj.dataset.tren),   borderColor: '#1d4ed8', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: false, order: 1 },
+                            { type: 'line', label: 'Min',                data: JSON.parse(elProj.dataset.min),    borderColor: '#dc2626', borderWidth: 1.5, borderDash: [4, 3], pointRadius: 0, tension: 0.4, fill: false, order: 2 },
+                            { type: 'line', label: 'Maks',               data: JSON.parse(elProj.dataset.maks),   borderColor: '#059669', borderWidth: 1.5, borderDash: [4, 3], pointRadius: 0, tension: 0.4, fill: false, order: 2 },
+                        ],
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: ctx => ctx.parsed.y === null ? null : `${ctx.dataset.label}: ${Math.round(ctx.parsed.y).toLocaleString('id-ID')} tab` } },
+                        },
+                        scales: {
+                            x: { ticks: { font: { size: 10 }, color: '#9CA3AF', autoSkip: true, maxTicksLimit: 15 }, grid: { display: false } },
+                            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' },
+                                ticks: { font: { size: 10 }, color: '#9CA3AF', callback: v => Number.isInteger(v) ? v.toLocaleString('id') : '' } },
+                        },
+                    },
+                });
+            }
+        })();
+    </script>
 @endpush
