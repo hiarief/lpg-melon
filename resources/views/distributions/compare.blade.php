@@ -86,6 +86,36 @@
     </div>
 </div>
 
+<div class="cmp-kpi-grid">
+    <div class="kpi-card" style="border-color:#d1fae5;">
+        <span class="kpi-label">Profit Bersih (semua periode)</span>
+        <span class="kpi-value" style="color:#059669;">Rp {{ number_format($grand['profitBersih']) }}</span>
+        <span class="kpi-sub">margin − ops − admin</span>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-label">Uang Dipegang Saat Ini</span>
+        <span class="kpi-value" style="color:#1d4ed8;">Rp {{ number_format($grand['totalUangDipegangKini']) }}</span>
+        <span class="kpi-sub">kas + bank + tabungan</span>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-label">Total Kekayaan Saat Ini</span>
+        <span class="kpi-value" style="color:#7c3aed;">Rp {{ number_format($grand['totalKekayaanKini']) }}</span>
+        <span class="kpi-sub">+ piutang + nilai stok</span>
+    </div>
+    <div class="kpi-card" style="border-color:#fecaca;">
+        <span class="kpi-label">Profit Bebas (Net Utang DO)</span>
+        <span class="kpi-value" style="color:{{ $grand['profitBebas'] >= 0 ? '#059669' : '#dc2626' }};">Rp {{ number_format($grand['profitBebas']) }}</span>
+        <span class="kpi-sub">profit − utang Agen belum dibayar</span>
+    </div>
+    <div class="kpi-card" style="border-color:{{ $grand['adaAnomali'] ? '#fecaca' : '#d1fae5' }};">
+        <span class="kpi-label">Konsistensi Data</span>
+        <span class="kpi-value" style="color:{{ $grand['adaAnomali'] ? '#dc2626' : 'var(--melon-dark)' }};font-size:14px;">
+            {{ $grand['adaAnomali'] ? '⚠ Ada Selisih' : '✓ Konsisten' }}
+        </span>
+        <span class="kpi-sub">cross-check antar modul</span>
+    </div>
+</div>
+
 {{-- ══ CHART TREN ANTAR PERIODE ══ --}}
 <div class="s-card">
     <div class="s-card-header">📊 Tren Distribusi, Tagihan & Piutang per Periode</div>
@@ -102,9 +132,9 @@
     </div>
 </div>
 
-{{-- ══ TABEL KOMPARASI ══ --}}
+{{-- ══ TABEL 1: PENJUALAN & DISTRIBUSI ══ --}}
 <div class="s-card">
-    <div class="s-card-header">📋 Tabel Komparasi per Periode</div>
+    <div class="s-card-header">📋 Tabel Penjualan & Distribusi per Periode</div>
     <div class="scroll-x">
         <table class="mob-table">
             <thead>
@@ -121,8 +151,6 @@
                     <th class="r">Rasio Lunas</th>
                     <th class="r">Avg/Hari</th>
                     <th class="r">Hari Aktif</th>
-                    <th class="r">Total DO</th>
-                    <th class="r">Stok Tersedia</th>
                 </tr>
             </thead>
             <tbody>
@@ -170,14 +198,10 @@
                     </td>
                     <td class="r">{{ $row['avgTabHar'] }} tab</td>
                     <td class="r">{{ $row['activeDays'] }}/{{ $row['daysInMonth'] }}</td>
-                    <td class="r">{{ number_format($row['totalDoQty']) }}</td>
-                    <td class="r" style="color:{{ $row['stokTersedia'] < 0 ? '#dc2626' : 'var(--text2)' }};">
-                        {{ number_format($row['stokTersedia']) }}
-                    </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="14" style="text-align:center;padding:24px;color:var(--text3);">Belum ada data periode.</td>
+                    <td colspan="12" style="text-align:center;padding:24px;color:var(--text3);">Belum ada data periode.</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -197,17 +221,25 @@
                     <td class="r">{{ number_format($rows->avg('rasioLunas'), 1) }}%</td>
                     <td class="r">{{ number_format($rows->avg('avgTabHar'), 1) }} tab</td>
                     <td class="r"></td>
-                    <td class="r">{{ number_format($rows->sum('totalDoQty')) }}</td>
-                    <td class="r"></td>
                 </tr>
             </tfoot>
             @endif
         </table>
     </div>
+    @if($grand['adaAnomali'])
+    <div style="padding:10px 14px;font-size:11px;color:#dc2626;background:#fef2f2;border-top:1px solid #fecaca;">
+        ⚠ Ada periode dengan selisih data antar modul distribusi vs cashflow vs DO. Cek nilai <code>selisihIncome</code>, <code>selisihMargin</code>, <code>selisihDoQty</code>, <code>selisihSurplus</code> pada periode terkait — kemungkinan penyebab: input manual yang tidak sinkron, atau bug perhitungan (contoh kasus: swap Saldo KAS/BANK Maret 2026 yang sebelumnya ditemukan).
+        <br>
+        @foreach($rows->where('isKonsisten', false) as $r)
+            <span style="display:inline-block;margin-top:4px;">• <strong>{{ $r['label'] }}</strong>: Income {{ number_format($r['selisihIncome']) }} | Margin {{ number_format($r['selisihMargin']) }} | DO {{ number_format($r['selisihDoQty']) }} | Surplus {{ number_format($r['selisihSurplus']) }}</span><br>
+        @endforeach
+    </div>
+    @endif
 </div>
 
+{{-- ══ TABEL 2: CASHFLOW & TABUNGAN (GABUNGAN) ══ --}}
 <div class="s-card">
-    <div class="s-card-header">💰 Tabel Komparasi Cashflow per Periode</div>
+    <div class="s-card-header">💰 Tabel Cashflow & Tabungan per Periode</div>
     <div class="scroll-x">
         <table class="mob-table">
             <thead>
@@ -216,14 +248,15 @@
                     <th class="r">Saldo Awal KAS</th>
                     <th class="r">Pemasukan</th>
                     <th class="r">Pengeluaran</th>
-                    <th class="r" style="background:#d1fae5;">Margin</th>
                     <th class="r">TF Penampung</th>
                     <th class="r">Admin TF</th>
                     <th class="r">TF Utama</th>
-                    <th class="r">Surplus</th>
+                    <th class="r" style="background:#fef9c3;">Surplus (→Tabungan)</th>
+                    <th class="r">Tabungan Keluar</th>
+                    <th class="r" style="background:#ede9fe;">Saldo Tabungan</th>
                     <th class="r">Saldo KAS</th>
                     <th class="r">Saldo BANK</th>
-                    <th class="r">Net Total</th>
+                    <th class="r" style="background:#dbeafe;">Net Total</th>
                     <th class="r">Growth Net</th>
                     <th class="r">Rasio Ops</th>
                 </tr>
@@ -235,14 +268,15 @@
                     <td class="r" style="color:#b45309;">{{ $row['cfOpeningCash'] > 0 ? 'Rp '.number_format($row['cfOpeningCash']) : '—' }}</td>
                     <td class="r">Rp {{ number_format($row['cfIncome']) }}</td>
                     <td class="r">Rp {{ number_format($row['cfExpense']) }}</td>
-                    <td class="r" style="background:#f0fdf4;color:#059669;font-weight:600;">Rp {{ number_format($row['cfMargin']) }}</td>
                     <td class="r">Rp {{ number_format($row['cfDeposits']) }}</td>
                     <td class="r" style="color:#1d4ed8;">{{ $row['cfAdminFees'] > 0 ? 'Rp '.number_format($row['cfAdminFees']) : '—' }}</td>
                     <td class="r">{{ $row['cfTransferred'] > 0 ? 'Rp '.number_format($row['cfTransferred']) : '—' }}</td>
-                    <td class="r" style="color:#6d28d9;">{{ $row['cfSurplus'] > 0 ? 'Rp '.number_format($row['cfSurplus']) : '—' }}</td>
+                    <td class="r" style="background:#fefce8;color:#b45309;font-weight:600;">{{ $row['cfSurplus'] > 0 ? 'Rp '.number_format($row['cfSurplus']) : '—' }}</td>
+                    <td class="r" style="color:#dc2626;">{{ $row['svOut'] > 0 ? 'Rp '.number_format($row['svOut']) : '—' }}</td>
+                    <td class="r bold" style="background:#f5f3ff;color:{{ $row['svBalance'] >= 0 ? '#6d28d9' : '#dc2626' }};">Rp {{ number_format($row['svBalance']) }}</td>
                     <td class="r" style="color:{{ $row['cfNetKas'] >= 0 ? 'var(--melon-dark)' : '#dc2626' }};">Rp {{ number_format($row['cfNetKas']) }}</td>
                     <td class="r" style="color:{{ $row['cfBankBal'] >= 0 ? '#4338ca' : '#dc2626' }};">Rp {{ number_format($row['cfBankBal']) }}</td>
-                    <td class="r bold" style="color:{{ $row['cfNetTotal'] >= 0 ? 'var(--melon-dark)' : '#dc2626' }};">Rp {{ number_format($row['cfNetTotal']) }}</td>
+                    <td class="r bold" style="background:#eff6ff;color:{{ $row['cfNetTotal'] >= 0 ? 'var(--melon-dark)' : '#dc2626' }};">Rp {{ number_format($row['cfNetTotal']) }}</td>
                     <td class="r">
                         @if($row['cfNetTotalGrowth'] === null)
                             <span class="growth-flat">—</span>
@@ -258,66 +292,20 @@
             </tbody>
             <tfoot>
                 <tr class="total-row">
-                    <td colspan="2">TOTAL</td>
+                    <td>TOTAL</td>
+                    <td class="r"></td>
                     <td class="r">Rp {{ number_format($grand['cfIncome']) }}</td>
                     <td class="r">Rp {{ number_format($grand['cfExpense']) }}</td>
-                    <td class="r">Rp {{ number_format($grand['cfMargin']) }}</td>
                     <td class="r">Rp {{ number_format($grand['cfDeposits']) }}</td>
                     <td class="r">Rp {{ number_format($grand['cfAdminFees']) }}</td>
                     <td class="r">Rp {{ number_format($grand['cfTransferred']) }}</td>
-                    <td class="r">Rp {{ number_format($grand['cfSurplus']) }}</td>
-                    <td class="r">Rp {{ number_format($grand['cfNetKas']) }}</td>
-                    <td class="r">Rp {{ number_format($grand['cfBankBal']) }}</td>
-                    <td class="r bold">Rp {{ number_format($grand['cfNetTotal']) }}</td>
-                    <td class="r"></td>
-                    <td class="r"></td>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
-</div>
-
-<div class="s-card">
-    <div class="s-card-header">🏦 Tabel Komparasi Tabungan (Surplus)</div>
-    <div class="scroll-x">
-        <table class="mob-table">
-            <thead>
-                <tr>
-                    <th>Periode</th>
-                    <th class="r">Saldo Awal</th>
-                    <th class="r">Masuk</th>
-                    <th class="r">Keluar</th>
-                    <th class="r">Saldo Akhir</th>
-                    <th class="r">Growth Saldo</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($rows as $row)
-                <tr>
-                    <td class="bold">{{ $row['label'] }}</td>
-                    <td class="r">Rp {{ number_format($row['svOpening']) }}</td>
-                    <td class="r" style="color:var(--melon-dark);">{{ $row['svIn'] > 0 ? 'Rp '.number_format($row['svIn']) : '—' }}</td>
-                    <td class="r" style="color:#dc2626;">{{ $row['svOut'] > 0 ? 'Rp '.number_format($row['svOut']) : '—' }}</td>
-                    <td class="r bold" style="color:{{ $row['svBalance'] >= 0 ? '#6d28d9' : '#dc2626' }};">Rp {{ number_format($row['svBalance']) }}</td>
-                    <td class="r">
-                        @if($row['svBalanceGrowth'] === null)
-                            <span class="growth-flat">—</span>
-                        @else
-                            <span class="{{ $row['svBalanceGrowth'] > 0 ? 'growth-up' : ($row['svBalanceGrowth'] < 0 ? 'growth-down' : 'growth-flat') }}">
-                                {{ $row['svBalanceGrowth'] > 0 ? '▲' : ($row['svBalanceGrowth'] < 0 ? '▼' : '–') }} {{ abs($row['svBalanceGrowth']) }}%
-                            </span>
-                        @endif
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-            <tfoot>
-                <tr class="total-row">
-                    <td>TOTAL</td>
-                    <td class="r"></td>
                     <td class="r">Rp {{ number_format($grand['svIn']) }}</td>
                     <td class="r">Rp {{ number_format($grand['svOut']) }}</td>
-                    <td class="r bold">Rp {{ number_format($grand['svBalance']) }}</td>
+                    <td class="r bold">Rp {{ number_format($grand['svBalance']) }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
+                    <td class="r">Rp {{ number_format($grand['cfNetKas']) }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
+                    <td class="r">Rp {{ number_format($grand['cfBankBal']) }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
+                    <td class="r bold">Rp {{ number_format($grand['cfNetTotal']) }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
+                    <td class="r"></td>
                     <td class="r"></td>
                 </tr>
             </tfoot>
@@ -325,8 +313,9 @@
     </div>
 </div>
 
+{{-- ══ TABEL 3: DELIVERY ORDER & STOK ══ --}}
 <div class="s-card">
-    <div class="s-card-header">🚚 Tabel Komparasi Delivery Order (DO) per Periode</div>
+    <div class="s-card-header">🚚 Tabel Delivery Order & Stok per Periode</div>
     <div class="scroll-x">
         <table class="mob-table">
             <thead>
@@ -339,6 +328,12 @@
                     <th class="r">Total Distribusi</th>
                     <th class="r">Sisa Stok</th>
                     <th class="r">Utilisasi</th>
+                    <th class="r">Nilai DO (HPP)</th>
+                    <th class="r">Kas Diterima</th>
+                    <th class="r" style="background:#fef9c3;">Selisih Kumulatif</th>
+                    <th class="r">Utang Awal</th>
+                    <th class="r">Dibayar (TF Utama)</th>
+                    <th class="r" style="background:#fee2e2;">Utang Akhir</th>
                 </tr>
             </thead>
             <tbody>
@@ -364,6 +359,16 @@
                     <td class="r" style="color:{{ $row['doUtilisasi'] >= 90 ? 'var(--melon-dark)' : ($row['doUtilisasi'] >= 70 ? '#d97706' : '#dc2626') }};font-weight:600;">
                         {{ $row['doUtilisasi'] }}%
                     </td>
+                    <td class="r" style="color:#b91c1c;">Rp {{ number_format($row['nilaiDoHpp']) }}</td>
+                    <td class="r" style="color:var(--melon-dark);">Rp {{ number_format($row['allPaid']) }}</td>
+                    <td class="r bold" style="background:#fefce8;color:{{ $row['kasVsDoSelisihKumulatif'] >= 0 ? '#059669' : '#dc2626' }};">
+                        Rp {{ number_format($row['kasVsDoSelisihKumulatif']) }}
+                    </td>
+                    <td class="r" style="color:var(--text3);">{{ $row['doPayableAwal'] != 0 ? 'Rp '.number_format($row['doPayableAwal']) : '—' }}</td>
+                    <td class="r" style="color:#4338ca;">Rp {{ number_format($row['cfTransferred']) }}</td>
+                    <td class="r bold" style="background:#fef2f2;color:{{ $row['doPayableAkhir'] > 0 ? '#dc2626' : 'var(--melon-dark)' }};">
+                        {{ $row['doPayableAkhir'] > 0 ? 'Rp '.number_format($row['doPayableAkhir']) : '✓ Lunas' }}
+                    </td>
                 </tr>
                 @endforeach
             </tbody>
@@ -377,108 +382,16 @@
                     <td class="r">{{ number_format($grand['doDistributed']) }}</td>
                     <td class="r"></td>
                     <td class="r">{{ $grand['avgUtilisasi'] }}%</td>
+                    <td class="r">Rp {{ number_format($grand['nilaiDoHpp']) }}</td>
+                    <td class="r">Rp {{ number_format($grand['allPaid']) }}</td>
+                    <td class="r bold">Rp {{ number_format($grand['kasVsDoSelisih']) }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
+                    <td class="r"></td>
+                    <td class="r">Rp {{ number_format($grand['cfTransferred']) }}</td>
+                    <td class="r bold">{{ $grand['doPayableAkhir'] > 0 ? 'Rp '.number_format($grand['doPayableAkhir']) : '✓ Lunas' }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
                 </tr>
             </tfoot>
         </table>
     </div>
-</div>
-
-<div class="cmp-kpi-grid" style="margin-top:20px;">
-    <div class="kpi-card" style="border-color:#d1fae5;">
-        <span class="kpi-label">Profit Bersih (semua periode)</span>
-        <span class="kpi-value" style="color:#059669;">Rp {{ number_format($grand['profitBersih']) }}</span>
-        <span class="kpi-sub">margin − ops − admin</span>
-    </div>
-    <div class="kpi-card">
-        <span class="kpi-label">Uang Dipegang Saat Ini</span>
-        <span class="kpi-value" style="color:#1d4ed8;">Rp {{ number_format($grand['totalUangDipegangKini']) }}</span>
-        <span class="kpi-sub">kas + bank + tabungan</span>
-    </div>
-    <div class="kpi-card">
-        <span class="kpi-label">Total Kekayaan Saat Ini</span>
-        <span class="kpi-value" style="color:#7c3aed;">Rp {{ number_format($grand['totalKekayaanKini']) }}</span>
-        <span class="kpi-sub">+ piutang + nilai stok</span>
-    </div>
-    <div class="kpi-card" style="border-color:{{ $grand['adaAnomali'] ? '#fecaca' : '#d1fae5' }};">
-        <span class="kpi-label">Konsistensi Data</span>
-        <span class="kpi-value" style="color:{{ $grand['adaAnomali'] ? '#dc2626' : 'var(--melon-dark)' }};font-size:14px;">
-            {{ $grand['adaAnomali'] ? '⚠ Ada Selisih' : '✓ Konsisten' }}
-        </span>
-        <span class="kpi-sub">cross-check antar modul</span>
-    </div>
-</div>
-
-<div class="s-card">
-    <div class="s-card-header">🧮 Rekonsiliasi & Analisis Keuangan per Periode</div>
-    <div class="scroll-x">
-        <table class="mob-table">
-            <thead>
-                <tr>
-                    <th>Periode</th>
-                    <th class="r">Margin Kotor</th>
-                    <th class="r">Beban Ops+Admin</th>
-                    <th class="r" style="background:#d1fae5;">Profit Bersih</th>
-                    <th class="r">Saldo KAS</th>
-                    <th class="r">Saldo BANK</th>
-                    <th class="r">Saldo Tabungan</th>
-                    <th class="r" style="background:#dbeafe;">Total Dipegang</th>
-                    <th class="r">Piutang</th>
-                    <th class="r">Nilai Stok</th>
-                    <th class="r" style="background:#ede9fe;">Total Kekayaan</th>
-                    <th class="r">Cek</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($rows as $row)
-                <tr>
-                    <td class="bold">{{ $row['label'] }}</td>
-                    <td class="r">Rp {{ number_format($row['allMargin']) }}</td>
-                    <td class="r" style="color:#dc2626;">Rp {{ number_format($row['cfExpense'] + $row['cfAdminFees']) }}</td>
-                    <td class="r bold" style="background:#f0fdf4;color:#059669;">Rp {{ number_format($row['profitBersih']) }}</td>
-                    <td class="r" style="color:{{ $row['cfNetKas'] >= 0 ? '#b45309' : '#dc2626' }};">Rp {{ number_format($row['cfNetKas']) }}</td>
-                    <td class="r" style="color:{{ $row['cfBankBal'] >= 0 ? '#4338ca' : '#dc2626' }};">Rp {{ number_format($row['cfBankBal']) }}</td>
-                    <td class="r" style="color:{{ $row['svBalance'] >= 0 ? '#6d28d9' : '#dc2626' }};">Rp {{ number_format($row['svBalance']) }}</td>
-                    <td class="r bold" style="background:#eff6ff;color:#1d4ed8;">Rp {{ number_format($row['totalUangDipegang']) }}</td>
-                    <td class="r" style="color:{{ $row['piutang'] > 0 ? '#dc2626' : 'var(--text3)' }};">
-                        {{ $row['piutang'] > 0 ? 'Rp '.number_format($row['piutang']) : '—' }}
-                    </td>
-                    <td class="r">Rp {{ number_format($row['nilaiStokAtCost']) }}</td>
-                    <td class="r bold" style="background:#f5f3ff;color:#6d28d9;">Rp {{ number_format($row['totalKekayaan']) }}</td>
-                    <td class="r">
-                        @if($row['isKonsisten'])
-                            <span style="color:var(--melon-dark);">✓</span>
-                        @else
-                            <span style="color:#dc2626;font-weight:600;" title="Income: {{ number_format($row['selisihIncome']) }} | Margin: {{ number_format($row['selisihMargin']) }} | DO: {{ number_format($row['selisihDoQty']) }}">
-                                ⚠ Rp {{ number_format(abs($row['selisihIncome'])) }}
-                            </span>
-                        @endif
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-            <tfoot>
-                <tr class="total-row">
-                    <td>TOTAL</td>
-                    <td class="r">Rp {{ number_format($grand['allMargin']) }}</td>
-                    <td class="r">Rp {{ number_format($grand['cfExpense'] + $grand['cfAdminFees']) }}</td>
-                    <td class="r">Rp {{ number_format($grand['profitBersih']) }}</td>
-                    <td class="r">Rp {{ number_format($grand['cfNetKas']) }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
-                    <td class="r">Rp {{ number_format($grand['cfBankBal']) }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
-                    <td class="r">Rp {{ number_format($grand['svBalance']) }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
-                    <td class="r">Rp {{ number_format($grand['totalUangDipegangKini']) }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
-                    <td class="r">Rp {{ number_format($grand['piutang']) }}</td>
-                    <td class="r"></td>
-                    <td class="r">Rp {{ number_format($grand['totalKekayaanKini']) }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
-                    <td class="r"></td>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
-    @if($grand['adaAnomali'])
-    <div style="padding:10px 14px;font-size:11px;color:#dc2626;background:#fef2f2;border-top:1px solid #fecaca;">
-        ⚠ Ada periode dengan selisih data antar modul distribusi vs cashflow vs DO. Cek kolom "Cek" — kemungkinan penyebab: input manual yang tidak sinkron, atau bug perhitungan (contoh kasus: swap Saldo KAS/BANK Maret 2026 yang sebelumnya ditemukan).
-    </div>
-    @endif
 </div>
 
 @php
@@ -576,70 +489,70 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script>
-(function () {
-    const el = document.getElementById('cmpChartData');
-    if (!el) return;
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <script>
+    (function () {
+        const el = document.getElementById('cmpChartData');
+        if (!el) return;
 
-    const labels   = JSON.parse(el.dataset.labels);
-    const qty      = JSON.parse(el.dataset.qty);
-    const val      = JSON.parse(el.dataset.val);
-    const piutang  = JSON.parse(el.dataset.piutang);
-    const rasio    = JSON.parse(el.dataset.rasio);
-    if (!labels.length) return;
+        const labels   = JSON.parse(el.dataset.labels);
+        const qty      = JSON.parse(el.dataset.qty);
+        const val      = JSON.parse(el.dataset.val);
+        const piutang  = JSON.parse(el.dataset.piutang);
+        const rasio    = JSON.parse(el.dataset.rasio);
+        if (!labels.length) return;
 
-    const GRID = 'rgba(0,0,0,0.05)';
-    const TICK = { font: { size: 10 }, color: '#9CA3AF' };
+        const GRID = 'rgba(0,0,0,0.05)';
+        const TICK = { font: { size: 10 }, color: '#9CA3AF' };
 
-    new Chart(document.getElementById('cmpTrendChart'), {
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    type: 'bar', label: 'Total Tabung', data: qty,
-                    backgroundColor: 'rgba(191,219,254,0.7)', borderColor: '#bfdbfe',
-                    borderWidth: 1, borderRadius: 4, yAxisID: 'y', order: 3,
-                },
-                {
-                    type: 'line', label: 'Total Tagihan', data: val.map(v => v / 1000),
-                    borderColor: '#1d4ed8', borderWidth: 2, pointRadius: 3,
-                    pointBackgroundColor: '#1d4ed8', tension: 0.3, fill: false,
-                    backgroundColor: 'transparent', yAxisID: 'y2', order: 1,
-                },
-                {
-                    type: 'line', label: 'Piutang', data: piutang.map(v => v / 1000),
-                    borderColor: '#dc2626', borderWidth: 1.5, borderDash: [4, 3],
-                    pointRadius: 2, pointBackgroundColor: '#dc2626', tension: 0.3, fill: false,
-                    backgroundColor: 'transparent', yAxisID: 'y2', order: 1,
-                },
-                {
-                    type: 'line', label: 'Rasio Lunas (%)', data: rasio,
-                    borderColor: '#059669', borderWidth: 1.5, borderDash: [4, 3],
-                    pointRadius: 2, pointBackgroundColor: '#059669', tension: 0.3, fill: false,
-                    backgroundColor: 'transparent', yAxisID: 'y3', order: 1,
-                },
-            ],
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-                legend: { display: false },
-                tooltip: { callbacks: { label: ctx => {
-                    if (ctx.dataset.label === 'Rasio Lunas (%)') return `${ctx.dataset.label}: ${ctx.parsed.y}%`;
-                    if (ctx.dataset.label === 'Total Tabung') return `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('id')} tab`;
-                    return `${ctx.dataset.label}: Rp ${Math.round(ctx.parsed.y * 1000).toLocaleString('id-ID')}`;
-                }}},
+        new Chart(document.getElementById('cmpTrendChart'), {
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        type: 'bar', label: 'Total Tabung', data: qty,
+                        backgroundColor: 'rgba(191,219,254,0.7)', borderColor: '#bfdbfe',
+                        borderWidth: 1, borderRadius: 4, yAxisID: 'y', order: 3,
+                    },
+                    {
+                        type: 'line', label: 'Total Tagihan', data: val.map(v => v / 1000),
+                        borderColor: '#1d4ed8', borderWidth: 2, pointRadius: 3,
+                        pointBackgroundColor: '#1d4ed8', tension: 0.3, fill: false,
+                        backgroundColor: 'transparent', yAxisID: 'y2', order: 1,
+                    },
+                    {
+                        type: 'line', label: 'Piutang', data: piutang.map(v => v / 1000),
+                        borderColor: '#dc2626', borderWidth: 1.5, borderDash: [4, 3],
+                        pointRadius: 2, pointBackgroundColor: '#dc2626', tension: 0.3, fill: false,
+                        backgroundColor: 'transparent', yAxisID: 'y2', order: 1,
+                    },
+                    {
+                        type: 'line', label: 'Rasio Lunas (%)', data: rasio,
+                        borderColor: '#059669', borderWidth: 1.5, borderDash: [4, 3],
+                        pointRadius: 2, pointBackgroundColor: '#059669', tension: 0.3, fill: false,
+                        backgroundColor: 'transparent', yAxisID: 'y3', order: 1,
+                    },
+                ],
             },
-            scales: {
-                x:  { grid: { color: GRID }, ticks: { ...TICK, autoSkip: false, maxRotation: 30 } },
-                y:  { position: 'left', grid: { color: GRID }, ticks: TICK, title: { display: true, text: 'Tabung', color: '#9CA3AF', font: { size: 10 } } },
-                y2: { position: 'right', grid: { display: false }, ticks: { ...TICK, callback: v => Math.round(v) + 'k' }, title: { display: true, text: 'Ribuan Rp', color: '#1d4ed8', font: { size: 10 } } },
-                y3: { display: false, min: 0, max: 100 },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => {
+                        if (ctx.dataset.label === 'Rasio Lunas (%)') return `${ctx.dataset.label}: ${ctx.parsed.y}%`;
+                        if (ctx.dataset.label === 'Total Tabung') return `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('id')} tab`;
+                        return `${ctx.dataset.label}: Rp ${Math.round(ctx.parsed.y * 1000).toLocaleString('id-ID')}`;
+                    }}},
+                },
+                scales: {
+                    x:  { grid: { color: GRID }, ticks: { ...TICK, autoSkip: false, maxRotation: 30 } },
+                    y:  { position: 'left', grid: { color: GRID }, ticks: TICK, title: { display: true, text: 'Tabung', color: '#9CA3AF', font: { size: 10 } } },
+                    y2: { position: 'right', grid: { display: false }, ticks: { ...TICK, callback: v => Math.round(v) + 'k' }, title: { display: true, text: 'Ribuan Rp', color: '#1d4ed8', font: { size: 10 } } },
+                    y3: { display: false, min: 0, max: 100 },
+                },
             },
-        },
-    });
-})();
-</script>
+        });
+    })();
+    </script>
 @endpush

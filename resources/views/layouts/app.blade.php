@@ -95,14 +95,14 @@
             <a href="{{ route('distributions.index') }}" class="desktop-nav-item {{ $nav==='dist' ? 'active' : '' }}">
                 <span class="desktop-nav-icon">🚚</span> Distribusi
             </a>
-            <a href="{{ route('distributions.compare') }}" class="desktop-nav-item {{ request()->routeIs('distributions.compare') ? 'active' : '' }}">
-                <span class="desktop-nav-icon">📈</span> Analisis Periode
-            </a>
             <a href="{{ route('cashflow.index') }}" class="desktop-nav-item {{ $nav==='fin' ? 'active' : '' }}">
                 <span class="desktop-nav-icon">💸</span> Keuangan
             </a>
             <a href="{{ route('transfer.index') }}" class="desktop-nav-item {{ $nav==='tf' ? 'active' : '' }}">
                 <span class="desktop-nav-icon">🏦</span> Transfer
+            </a>
+            <a href="{{ route('distributions.compare') }}" class="desktop-nav-item {{ request()->routeIs('distributions.compare') ? 'active' : '' }}">
+                <span class="desktop-nav-icon">📈</span> Analisis Periode
             </a>
             <a href="{{ route('summary.index') }}" class="desktop-nav-item {{ request()->routeIs('summary.*') ? 'active' : '' }}">
                 <span class="desktop-nav-icon">📊</span> Ringkasan
@@ -222,6 +222,8 @@
             <a href="{{ route('contract-dist.index') }}" class="drawer-item"><span class="drawer-item-icon">⭐</span><span class="drawer-item-label">Kontrak</span></a>
             <a href="{{ route('savings.index') }}"       class="drawer-item"><span class="drawer-item-icon">💰</span><span class="drawer-item-label">Tabungan</span></a>
             <a href="{{ route('periods.index') }}"       class="drawer-item"><span class="drawer-item-icon">📅</span><span class="drawer-item-label">Periode</span></a>
+            <a href="{{ route('distributions.compare') }}"       class="drawer-item"><span class="drawer-item-icon">📈</span><span class="drawer-item-label">Analisis Periode</span></a>
+
         </div>
 
         <hr class="drawer-divider">

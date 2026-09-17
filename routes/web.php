@@ -73,6 +73,7 @@ Route::middleware('auth')->group(function () {
         ->name('distributions.')
         ->group(function () {
             Route::get('/', [DistributionController::class, 'index'])->name('index');
+            Route::post('/generate-prediction', [DistributionController::class, 'generatePrediction'])->name('generate-prediction');
             Route::get('/compare', [DistributionController::class, 'compare'])->name('compare');
             Route::get('/create', [DistributionController::class, 'create'])->name('create');
             Route::post('/', [DistributionController::class, 'store'])->name('store');

@@ -778,7 +778,199 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
         <span><span style="color:#dc2626;font-weight:600;">Merah</span> = Piutang</span>
     </div>
 </div>
+{{-- ══════════════════════════════════════════════════════════
+    SIMULASI PREDIKSI KEBUTUHAN KIRIM GAS PER CUSTOMER
+══════════════════════════════════════════════════════════ --}}
+@if($nextPeriod)
+<form method="POST" action="{{ route('distributions.generate-prediction') }}">
+    @csrf
+    <input type="hidden" name="source_period_id" value="{{ $period->id }}">
+    <input type="hidden" name="target_period_id" value="{{ $nextPeriod->id }}">
+    <button type="submit" class="btn-sm">🔒 Generate Prediksi Bulan Depan</button>
+</form>
+@endif
+@if($generatedAt)
+    <span class="text-note">Prediksi dikunci — digenerate {{ $generatedAt->format('d M Y H:i') }}</span>
+@endif
 
+<div class="s-card">
+    <div class="s-card-header row-between" style="flex-wrap:wrap;">
+        <span>🔮 Simulasi Prediksi Kebutuhan Kirim Gas</span>
+        <span class="header-legend-note">
+            <span style="color:#7c3aed;">■</span> high &nbsp;
+            <span style="color:#a78bfa;">■</span> medium &nbsp;
+            <span style="color:#c4b5fd;">■</span> low confidence
+        </span>
+    </div>
+    <div class="pad-sm">
+        <div class="text-note mb-10">
+            Prediksi ini adalah snapshot yang dikunci saat digenerate — bukan dihitung ulang tiap buka halaman.
+        </div>
+
+        <div class="scroll-x">
+            <table class="mob-table">
+                <thead>
+                    <tr>
+                        <th class="sticky-col-header-lg min-w-110">Customer</th>
+                        @for($d = 1; $d <= $daysInMonth; $d++)
+                            <th class="r" style="min-width:28px;">{{ $d }}</th>
+                        @endfor
+                        <th class="r bg-purple-50">Interval Avg</th>
+                        <th class="r bg-purple-50">Est. Qty</th>
+                        <th class="r bg-melon-50">Prediksi Berikutnya</th>
+                        <th class="r bg-red-50">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @php
+                        $statusMap = [
+                            'overdue' => ['label' => 'Terlambat', 'bg' => '#fef2f2', 'col' => '#991b1b'],
+                            'today'   => ['label' => 'Hari ini',  'bg' => '#fff7ed', 'col' => '#9a3412'],
+                            'soon'    => ['label' => 'Segera',    'bg' => '#fff7ed', 'col' => '#9a3412'],
+                            'normal'  => ['label' => 'Normal',    'bg' => '#f5f3ff', 'col' => '#6d28d9'],
+                        ];
+                    @endphp
+                    @foreach($customers as $c)
+                        @php $ps = $predictionSummary[$c->id] ?? null; @endphp
+                        @continue(!$ps)
+                        @php $sInfo = $statusMap[$ps['status']] ?? $statusMap['normal']; @endphp
+                        <tr class="{{ $c->type === 'contract' ? 'row-contract' : '' }}">
+                            <td class="bold sticky-col-body-lg min-w-110 {{ $c->type === 'contract' ? 'bg-contract' : '' }}">
+                                {{ $c->name }}
+                                @if($c->type === 'contract') <span style="color:#d97706;">★</span> @endif
+                            </td>
+                            @for($day = 1; $day <= $daysInMonth; $day++)
+                                @php $pcell = $predictionGrid[$c->id][$day] ?? null; @endphp
+                                <td class="r" style="padding:6px 2px;font-size:10px;">
+                                    @if($pcell)
+                                        @php
+                                            $confColor = $pcell['confidence'] === 'high' ? '#7c3aed'
+                                                : ($pcell['confidence'] === 'medium' ? '#a78bfa' : '#c4b5fd');
+                                        @endphp
+                                        <span style="color:{{ $confColor }};font-weight:600;"
+                                            title="Estimasi qty: {{ $pcell['qty'] }} tab ({{ $pcell['confidence'] }})">
+                                            ~{{ $pcell['qty'] }}
+                                        </span>
+                                    @else
+                                        <span style="color:var(--border);">–</span>
+                                    @endif
+                                </td>
+                            @endfor
+                            <td class="r" style="color:#7c3aed;font-weight:600;">{{ $ps['avgInterval'] }} hari</td>
+                            <td class="r" style="color:#7c3aed;font-weight:600;">{{ number_format($ps['avgQty']) }} tab</td>
+                            <td class="r bold">{{ $ps['nextPredicted']?->format('d/m') ?? '-' }}</td>
+                            <td class="r">
+                                <span class="badge" style="background:{{ $sInfo['bg'] }};color:{{ $sInfo['col'] }};">
+                                    {{ $sInfo['label'] }}
+                                    @if($ps['daysUntil'] !== null)
+                                        ({{ $ps['status'] === 'overdue' ? abs($ps['daysUntil']) : $ps['daysUntil'] }}h)
+                                    @endif
+                                </span>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        @php
+            $needAttention = collect($predictionSummary)
+                ->filter(fn($p) => in_array($p['status'], ['overdue', 'today', 'soon']))
+                ->sortBy('daysUntil');
+        @endphp
+        <div class="pill-box mt-10">
+            @forelse($needAttention as $cid => $p)
+                @php $cust = $customers->firstWhere('id', $cid); @endphp
+                @continue(!$cust)
+                <div class="pill {{ $p['status'] === 'overdue' ? 'pill-red' : 'pill-orange' }}">
+                    <span class="pill-icon">{{ $p['status'] === 'overdue' ? '!' : '⏰' }}</span>
+                    <span>
+                        <strong>{{ $cust->name }}</strong> —
+                        {{ $p['status'] === 'overdue'
+                            ? 'terlambat '.abs($p['daysUntil']).' hari dari perkiraan jadwal'
+                            : 'diperkirakan butuh kirim dalam '.$p['daysUntil'].' hari' }}
+                        (prediksi {{ $p['nextPredicted']?->format('d/m') }}, ~{{ $p['avgQty'] }} tab)
+                    </span>
+                </div>
+            @empty
+                <div class="pill pill-green">
+                    <span class="pill-icon">✓</span>
+                    <span>Tidak ada customer yang mendesak butuh pengiriman dalam waktu dekat.</span>
+                </div>
+            @endforelse
+        </div>
+    </div>
+</div>
+
+@if(!empty($comparisonData))
+    <div class="s-card">
+        <div class="s-card-header">📈 Akurasi Prediksi vs Realisasi</div>
+        <div class="scroll-x">
+            <table class="mob-table">
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th class="r">Prediksi</th><th class="r">Realisasi</th>
+                        <th class="r">Selisih</th><th class="r">Akurasi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($comparisonData as $row)
+                    <tr>
+                        <td>{{ $row['customer'] }}</td>
+                        <td class="r">{{ $row['predicted'] }}</td>
+                        <td class="r">{{ $row['terkirim'] ? $row['actual'] : '–' }}</td>
+                        <td class="r" style="color:{{ $row['selisih'] == 0 ? '#059669' : '#dc2626' }};">
+                            {{ $row['terkirim'] ? ($row['selisih'] > 0 ? '+' : '').$row['selisih'] : 'miss' }}
+                        </td>
+                        <td class="r">{{ $row['akurasi'] !== null ? round($row['akurasi']).'%' : '-' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td style="background:var(--melon);color:#fff;">TOTAL</td>
+                        <td class="r">{{ number_format($comparisonTotals['predicted']) }}</td>
+                        <td class="r">{{ number_format($comparisonTotals['actual']) }}</td>
+                        <td class="r" style="font-weight:700;color:{{ $comparisonTotals['selisih'] == 0 ? '#059669' : '#dc2626' }};">
+                            {{ ($comparisonTotals['selisih'] > 0 ? '+' : '').number_format($comparisonTotals['selisih']) }}
+                        </td>
+                        <td class="r" style="font-weight:700;">
+                            {{ $comparisonTotals['akurasi'] !== null ? round($comparisonTotals['akurasi']).'%' : '-' }}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+@endif
+
+@if(!empty($uncoveredCustomers))
+    <div class="s-card">
+        <div class="s-card-header">⚠️ Realisasi Belum Tercover Prediksi</div>
+        <div class="text-note pad-sm">
+            Customer berikut punya realisasi bulan ini tapi tidak muncul di tabel akurasi di atas —
+            makanya total Realisasi di tabel akurasi ({{ number_format($comparisonTotals['actual']) }})
+            lebih kecil dari Total Distribusi ({{ number_format($distributions->sum('qty')) }}).
+        </div>
+        <div class="scroll-x">
+            <table class="mob-table">
+                <thead>
+                    <tr><th>Customer</th><th class="r">Qty Realisasi</th><th>Alasan Tidak Tercover</th></tr>
+                </thead>
+                <tbody>
+                    @foreach($uncoveredCustomers as $row)
+                    <tr>
+                        <td>{{ $row['name'] }}</td>
+                        <td class="r">{{ number_format($row['qty']) }}</td>
+                        <td class="text-muted">{{ $row['reason'] }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+@endif
 {{-- ══════════════════════════════════════════════════════════
     DETAIL DISTRIBUSI
 ══════════════════════════════════════════════════════════ --}}
