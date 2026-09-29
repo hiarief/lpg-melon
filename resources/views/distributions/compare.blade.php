@@ -312,6 +312,219 @@
         </table>
     </div>
 </div>
+{{-- ══ TABEL: REKONSILIASI HASIL PENJUALAN vs TRANSFER KELUAR ══ --}}
+<div class="s-card">
+    <div class="s-card-header">🧮 Tabel Rekonsiliasi Hasil Penjualan vs Transfer Keluar</div>
+    <div style="padding:8px 14px 0;font-size:10px;color:var(--text3);">
+        Hasil Penjualan − TF Penampung − Admin TF − Operasional − TF Rekening Utama = Selisih
+    </div>
+    <div class="scroll-x">
+        <table class="mob-table">
+            <thead>
+                <tr>
+                    <th>Periode</th>
+                    <th class="r">Hasil Penjualan</th>
+                    <th class="r">TF Ke Penampung</th>
+                    <th class="r">Admin TF Penampung</th>
+                    <th class="r">Operasional</th>
+                    <th class="r">TF Ke Rek. Utama</th>
+                    <th class="r" style="background:#d1fae5;">Margin</th>
+                    <th class="r" style="background:#fef9c3;">Selisih</th>
+                    <th class="r" style="background:#fef9c3;">Selisih TF</th>
+                    <th class="r" style="background:#ede9fe;">Margin − Ops − Admin − Selisih TF</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($rows as $row)
+                <tr>
+                    <td class="bold">{{ $row['label'] }}</td>
+                    <td class="r">Rp {{ number_format($row['cfIncome']) }}</td>
+                    <td class="r">{{ $row['cfDeposits'] > 0 ? 'Rp '.number_format($row['cfDeposits']) : '—' }}</td>
+                    <td class="r" style="color:#1d4ed8;">{{ $row['cfAdminFees'] > 0 ? 'Rp '.number_format($row['cfAdminFees']) : '—' }}</td>
+                    <td class="r" style="color:#dc2626;">{{ $row['cfExpense'] > 0 ? 'Rp '.number_format($row['cfExpense']) : '—' }}</td>
+                    <td class="r">{{ $row['cfTransferred'] > 0 ? 'Rp '.number_format($row['cfTransferred']) : '—' }}</td>
+                    <td class="r bold" style="background:#f0fdf4;color:#059669;">Rp {{ number_format($row['cfMargin']) }}</td>
+                    <td class="r bold" style="background:#fefce8;color:{{ $row['cfSelisihRekon'] >= 0 ? '#059669' : '#dc2626' }};">
+                        {{ $row['cfSelisihRekon'] >= 0 ? 'Rp '.number_format($row['cfSelisihRekon']) : '− Rp '.number_format(abs($row['cfSelisihRekon'])) }}
+                    </td>
+                    <td class="r bold" style="background:#fefce8;color:{{ $row['cfSelisihPenampungVsRekeningUtama'] >= 0 ? '#059669' : '#dc2626' }};">
+                        {{ $row['cfSelisihPenampungVsRekeningUtama'] >= 0 ? 'Rp '.number_format($row['cfSelisihPenampungVsRekeningUtama']) : '− Rp '.number_format(abs($row['cfSelisihPenampungVsRekeningUtama'])) }}
+                    </td>
+                    <td class="r bold" style="background:#f5f3ff;color:{{ $row['cfSelisihMarginOpsAdminTf'] >= 0 ? '#6d28d9' : '#dc2626' }};">
+                        {{ $row['cfSelisihMarginOpsAdminTf'] >= 0 ? 'Rp '.number_format($row['cfSelisihMarginOpsAdminTf']) : '− Rp '.number_format(abs($row['cfSelisihMarginOpsAdminTf'])) }}
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="10" style="text-align:center;padding:24px;color:var(--text3);">Belum ada data periode.</td>
+                </tr>
+                @endforelse
+            </tbody>
+            @if($rows->count() > 0)
+            <tfoot>
+                <tr class="total-row">
+                    <td>TOTAL</td>
+                    <td class="r">Rp {{ number_format($grand['cfIncome']) }}</td>
+                    <td class="r">Rp {{ number_format($grand['cfDeposits']) }}</td>
+                    <td class="r">Rp {{ number_format($grand['cfAdminFees']) }}</td>
+                    <td class="r">Rp {{ number_format($grand['cfExpense']) }}</td>
+                    <td class="r">Rp {{ number_format($grand['cfTransferred']) }}</td>
+                    <td class="r bold">Rp {{ number_format($grand['cfMargin']) }}</td>
+                    <td class="r bold">
+                        {{ $grand['cfSelisihRekon'] >= 0 ? 'Rp '.number_format($grand['cfSelisihRekon']) : '− Rp '.number_format(abs($grand['cfSelisihRekon'])) }}
+                    </td>
+                    <td class="r bold">
+                        {{ $grand['cfSelisihPenampungVsRekeningUtama'] >= 0 ? 'Rp '.number_format($grand['cfSelisihPenampungVsRekeningUtama']) : '− Rp '.number_format(abs($grand['cfSelisihPenampungVsRekeningUtama'])) }}
+                    </td>
+                    <td class="r bold">
+                        {{ $grand['cfSelisihMarginOpsAdminTf'] >= 0 ? 'Rp '.number_format($grand['cfSelisihMarginOpsAdminTf']) : '− Rp '.number_format(abs($grand['cfSelisihMarginOpsAdminTf'])) }}
+                    </td>
+                </tr>
+            </tfoot>
+            @endif
+        </table>
+    </div>
+</div>
+
+{{-- ══ TABEL: STOK & PENDANAAN DO vs TRANSFER ══ --}}
+<div class="s-card">
+    <div class="s-card-header">📦 Tabel Stok DO vs Pendanaan Transfer</div>
+    <div style="padding:8px 14px 0;font-size:10px;color:var(--text3);">
+        (DO Diterima × Rp16.000) − TF Ke Rekening Utama = Selisih
+    </div>
+    <div class="scroll-x">
+        <table class="mob-table">
+            <thead>
+                <tr>
+                    <th>Periode</th>
+                    <th class="r">Stok Awal</th>
+                    <th class="r">DO Diterima</th>
+                    <th class="r">Total DO</th>
+                    <th class="r">Total Distribusi</th>
+                    <th class="r">Sisa Stok</th>
+                    <th class="r" style="background:#fee2e2;">DO Diterima × 16.000</th>
+                    <th class="r">Kas Diterima / Hasil Penjualan</th>
+                    <th class="r">TF Ke Penampung</th>
+                    <th class="r">Admin TF</th>
+                    <th class="r">TF Ke Rek. Utama</th>
+                    <th class="r" style="background:#fef9c3;">Selisih</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($rows as $row)
+                <tr>
+                    <td class="bold">{{ $row['label'] }}</td>
+                    <td class="r" style="color:var(--text2);">{{ number_format($row['openingStock']) }}</td>
+                    <td class="r bold">{{ number_format($row['doReceivedQty']) }}</td>
+                    <td class="r">{{ number_format($row['doTotalQty']) }}</td>
+                    <td class="r">{{ number_format($row['doDistributed']) }}</td>
+                    <td class="r" style="color:{{ $row['doSisaStok'] < 0 ? '#dc2626' : 'var(--text2)' }};">
+                        {{ number_format($row['doSisaStok']) }}
+                    </td>
+                    <td class="r bold" style="background:#fef2f2;color:#b91c1c;">Rp {{ number_format($row['doReceivedHpp']) }}</td>
+                    <td class="r" style="color:var(--melon-dark);">Rp {{ number_format($row['allPaid']) }}</td>
+                    <td class="r">{{ $row['cfDeposits'] > 0 ? 'Rp '.number_format($row['cfDeposits']) : '—' }}</td>
+                    <td class="r" style="color:#1d4ed8;">{{ $row['cfAdminFees'] > 0 ? 'Rp '.number_format($row['cfAdminFees']) : '—' }}</td>
+                    <td class="r">{{ $row['cfTransferred'] > 0 ? 'Rp '.number_format($row['cfTransferred']) : '—' }}</td>
+                    <td class="r bold" style="background:#fefce8;color:{{ $row['selisihDoReceivedVsTransfer'] >= 0 ? '#059669' : '#dc2626' }};">
+                        {{ $row['selisihDoReceivedVsTransfer'] >= 0 ? 'Rp '.number_format($row['selisihDoReceivedVsTransfer']) : '− Rp '.number_format(abs($row['selisihDoReceivedVsTransfer'])) }}
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="12" style="text-align:center;padding:24px;color:var(--text3);">Belum ada data periode.</td>
+                </tr>
+                @endforelse
+            </tbody>
+            @if($rows->count() > 0)
+            <tfoot>
+                <tr class="total-row">
+                    <td>TOTAL</td>
+                    <td class="r">{{ number_format($rows->sum('openingStock')) }}</td>
+                    <td class="r">{{ number_format($grand['doReceivedQty']) }}</td>
+                    <td class="r">{{ number_format($grand['doTotalQty']) }}</td>
+                    <td class="r">{{ number_format($grand['doDistributed']) }}</td>
+                    <td class="r"></td>
+                    <td class="r bold">Rp {{ number_format($grand['doReceivedHpp']) }}</td>
+                    <td class="r">Rp {{ number_format($grand['allPaid']) }}</td>
+                    <td class="r">Rp {{ number_format($grand['cfDeposits']) }}</td>
+                    <td class="r">Rp {{ number_format($grand['cfAdminFees']) }}</td>
+                    <td class="r">Rp {{ number_format($grand['cfTransferred']) }}</td>
+                    <td class="r bold">
+                        {{ $grand['selisihDoReceivedVsTransfer'] >= 0 ? 'Rp '.number_format($grand['selisihDoReceivedVsTransfer']) : '− Rp '.number_format(abs($grand['selisihDoReceivedVsTransfer'])) }}
+                    </td>
+                </tr>
+            </tfoot>
+            @endif
+        </table>
+    </div>
+</div>
+
+{{-- ══ TABEL: PROFIT BEBAS PER PERIODE ══ --}}
+<div class="s-card">
+    <div class="s-card-header">💵 Tabel Profit Bebas per Periode</div>
+    <div style="padding:8px 14px 0;font-size:10px;color:var(--text3);">
+        Profit Bersih (Margin − Operasional − Admin) − Kenaikan Utang DO bulan itu = Profit Bebas (bisa diambil)
+    </div>
+    <div class="scroll-x">
+        <table class="mob-table">
+            <thead>
+                <tr>
+                    <th>Periode</th>
+                    <th class="r" style="background:#d1fae5;">Margin</th>
+                    <th class="r">Operasional</th>
+                    <th class="r">Admin TF</th>
+                    <th class="r" style="background:#eff6ff;">Profit Bersih</th>
+                    <th class="r">Kenaikan Utang DO Bulan Ini</th>
+                    <th class="r" style="background:#ede9fe;">Profit Bebas (Bisa Diambil)</th>
+                    <th class="r">Utang DO Akhir</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($rows as $row)
+                <tr>
+                    <td class="bold">{{ $row['label'] }}</td>
+                    <td class="r" style="background:#f0fdf4;color:#059669;">Rp {{ number_format($row['allMargin']) }}</td>
+                    <td class="r" style="color:#dc2626;">{{ $row['cfExpense'] > 0 ? 'Rp '.number_format($row['cfExpense']) : '—' }}</td>
+                    <td class="r" style="color:#1d4ed8;">{{ $row['cfAdminFees'] > 0 ? 'Rp '.number_format($row['cfAdminFees']) : '—' }}</td>
+                    <td class="r bold" style="background:#eff6ff;color:{{ $row['profitBersih'] >= 0 ? '#1d4ed8' : '#dc2626' }};">
+                        Rp {{ number_format($row['profitBersih']) }}
+                    </td>
+                    <td class="r" style="color:{{ $row['doPayable'] > 0 ? '#dc2626' : '#059669' }};">
+                        {{ $row['doPayable'] > 0 ? '− Rp '.number_format($row['doPayable']) : ($row['doPayable'] < 0 ? '+ Rp '.number_format(abs($row['doPayable'])) : '—') }}
+                    </td>
+                    <td class="r bold" style="background:#f5f3ff;color:{{ $row['profitBebasPeriode'] >= 0 ? '#6d28d9' : '#dc2626' }};">
+                        Rp {{ number_format($row['profitBebasPeriode']) }}
+                    </td>
+                    <td class="r" style="color:{{ $row['doPayableAkhir'] > 0 ? '#dc2626' : 'var(--melon-dark)' }};">
+                        {{ $row['doPayableAkhir'] > 0 ? 'Rp '.number_format($row['doPayableAkhir']) : '✓ Lunas' }}
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="8" style="text-align:center;padding:24px;color:var(--text3);">Belum ada data periode.</td>
+                </tr>
+                @endforelse
+            </tbody>
+            @if($rows->count() > 0)
+            <tfoot>
+                <tr class="total-row">
+                    <td>TOTAL</td>
+                    <td class="r">Rp {{ number_format($grand['allMargin']) }}</td>
+                    <td class="r">Rp {{ number_format($grand['cfExpense']) }}</td>
+                    <td class="r">Rp {{ number_format($grand['cfAdminFees']) }}</td>
+                    <td class="r bold">Rp {{ number_format($grand['profitBersih']) }}</td>
+                    <td class="r"></td>
+                    <td class="r bold" style="color:{{ $grand['profitBebas'] >= 0 ? '#6d28d9' : '#dc2626' }};">
+                        Rp {{ number_format($grand['profitBebas']) }}
+                    </td>
+                    <td class="r bold">{{ $grand['doPayableAkhir'] > 0 ? 'Rp '.number_format($grand['doPayableAkhir']) : '✓ Lunas' }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
+                </tr>
+            </tfoot>
+            @endif
+        </table>
+    </div>
+</div>
 
 {{-- ══ TABEL 3: DELIVERY ORDER & STOK ══ --}}
 <div class="s-card">

@@ -134,7 +134,25 @@ class DistributionController extends Controller
             $kasVsDoSelisih = $s['allPaid'] - $nilaiDoHpp;
 
             // ── Utang ke Agen / Accounts Payable ──
-            $doPayable = $nilaiDoHpp - $cf['totalTransferred'];
+            $doPayable = $nilaiDoHpp - ($cf['totalTransferred'] - $cf['totalSurplus']);
+
+            // ── Rekonsiliasi Hasil Penjualan vs Transfer Keluar (baru) ──
+            // Hasil Penjualan − TF Penampung − Admin TF − Operasional − TF Rekening Utama = Selisih
+            $selisihRekonsiliasi = $cf['totalIncome']
+                - $cf['totalDeposits']
+                - $cf['totalAdminFees']
+                - $cf['totalExpense'];
+
+            $selisihPenampungVsRekeningUtama = $cf['totalDeposits'] - $cf['totalTransferred'];
+
+            $selisihMarginOpsAdminTf = $cf['totalMargin']
+                - $cf['totalExpense']
+                - $cf['totalAdminFees']
+                - $selisihPenampungVsRekeningUtama;
+
+            // ── Nilai DO Diterima (HPP) vs TF Rekening Utama (baru) ──
+            $doReceivedHpp = $doReceivedQty * self::HPP_PER_TABUNG;
+            $selisihDoReceivedVsTransfer = ($cf['totalTransferred'] - $cf['totalSurplus']) - $doReceivedHpp;
 
             return [
                 'period_id'    => $period->id,
@@ -168,6 +186,11 @@ class DistributionController extends Controller
                 'cfNetTotal'    => $cf['netTotal'],
                 'cfRasioOps'    => $cf['rasioOperasional'],
                 'cfRasioGross'  => $cf['rasioGross'],
+                'cfSelisihRekon' => $selisihRekonsiliasi,
+                'cfSelisihPenampungVsRekeningUtama' => $selisihPenampungVsRekeningUtama,
+                'cfSelisihMarginOpsAdminTf' => $selisihMarginOpsAdminTf,
+                'doReceivedHpp'  => $doReceivedHpp,
+                'selisihDoReceivedVsTransfer' => $selisihDoReceivedVsTransfer,
 
                 // ── saving / surplus ──
                 'svOpening' => $savingOpening,
@@ -238,6 +261,8 @@ class DistributionController extends Controller
             $doPayableKumulatif   += $row['doPayable'];
             $row['doPayableAkhir'] = $doPayableKumulatif;
 
+            $row['profitBebasPeriode'] = $row['profitBersih'] - $row['doPayable'];
+
             return $row;
         });
 
@@ -266,6 +291,9 @@ class DistributionController extends Controller
             'cfBankBal'          => $rows->last()['cfBankBal'] ?? 0,
             'cfNetTotal'         => $rows->last()['cfNetTotal'] ?? 0,
             'bestCashflowPeriod' => $rows->sortByDesc('cfNetTotal')->first(),
+            'cfSelisihRekon'     => $rows->sum('cfSelisihRekon'),
+            'cfSelisihPenampungVsRekeningUtama' => $rows->sum('cfSelisihPenampungVsRekeningUtama'),
+            'cfSelisihMarginOpsAdminTf' => $rows->sum('cfSelisihMarginOpsAdminTf'),
 
             'svIn'      => $rows->sum('svIn'),
             'svOut'     => $rows->sum('svOut'),
@@ -280,6 +308,8 @@ class DistributionController extends Controller
             'kasVsDoSelisih' => $rows->last()['kasVsDoSelisihKumulatif'] ?? 0,
             'doPayableAkhir' => $doPayableAkhirKini,
             'profitBebas'    => $rows->sum('profitBersih') - $doPayableAkhirKini,
+            'doReceivedHpp'  => $rows->sum('doReceivedHpp'),
+            'selisihDoReceivedVsTransfer' => $rows->sum('selisihDoReceivedVsTransfer'),
 
             'profitBersih'          => $rows->sum('profitBersih'),
             'totalUangDipegangKini' => $rows->last()['totalUangDipegang'] ?? 0,
