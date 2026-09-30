@@ -92,6 +92,16 @@
         <span class="kpi-value" style="color:#059669;">Rp {{ number_format($grand['profitBersih']) }}</span>
         <span class="kpi-sub">margin − ops − admin</span>
     </div>
+    <div class="kpi-card" style="border-color:#fef3c7;">
+        <span class="kpi-label">Profit Kas (perubahan kas tangan)</span>
+        <span class="kpi-value" style="color:#b45309;">Rp {{ number_format($grand['profitKas']) }}</span>
+        <span class="kpi-sub">netKas akhir − opening cash</span>
+    </div>
+    <div class="kpi-card" style="border-color:#ede9fe;">
+        <span class="kpi-label">Rekomendasi Ambil (70% profit kas)</span>
+        <span class="kpi-value" style="color:#6d28d9;">Rp {{ number_format($grand['rekomendasiAmbil']) }}</span>
+        <span class="kpi-sub">konservatif, aman untuk ditarik</span>
+    </div>
     <div class="kpi-card">
         <span class="kpi-label">Uang Dipegang Saat Ini</span>
         <span class="kpi-value" style="color:#1d4ed8;">Rp {{ number_format($grand['totalUangDipegangKini']) }}</span>
@@ -304,7 +314,7 @@
                     <td class="r bold">Rp {{ number_format($grand['svBalance']) }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
                     <td class="r">Rp {{ number_format($grand['cfNetKas']) }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
                     <td class="r">Rp {{ number_format($grand['cfBankBal']) }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
-                    <td class="r bold">Rp {{ number_format($grand['cfNetTotal']) }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
+                    <td class="r bold">Rp {{ number_format($grand['cfNetTotalTerakhir']) }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
                     <td class="r"></td>
                     <td class="r"></td>
                 </tr>
@@ -475,8 +485,10 @@
                     <th class="r">Operasional</th>
                     <th class="r">Admin TF</th>
                     <th class="r" style="background:#eff6ff;">Profit Bersih</th>
+                    <th class="r" style="background:#fef3c7;">Profit Kas</th>
                     <th class="r">Kenaikan Utang DO Bulan Ini</th>
                     <th class="r" style="background:#ede9fe;">Profit Bebas (Bisa Diambil)</th>
+                    <th class="r" style="background:#d1fae5;">Rekomendasi Ambil (70%)</th>
                     <th class="r">Utang DO Akhir</th>
                 </tr>
             </thead>
@@ -490,11 +502,17 @@
                     <td class="r bold" style="background:#eff6ff;color:{{ $row['profitBersih'] >= 0 ? '#1d4ed8' : '#dc2626' }};">
                         Rp {{ number_format($row['profitBersih']) }}
                     </td>
+                    <td class="r" style="color:{{ $row['profitKas'] >= 0 ? '#b45309' : '#dc2626' }};">
+                        {{ $row['profitKas'] >= 0 ? 'Rp '.number_format($row['profitKas']) : '− Rp '.number_format(abs($row['profitKas'])) }}
+                    </td>
                     <td class="r" style="color:{{ $row['doPayable'] > 0 ? '#dc2626' : '#059669' }};">
                         {{ $row['doPayable'] > 0 ? '− Rp '.number_format($row['doPayable']) : ($row['doPayable'] < 0 ? '+ Rp '.number_format(abs($row['doPayable'])) : '—') }}
                     </td>
                     <td class="r bold" style="background:#f5f3ff;color:{{ $row['profitBebasPeriode'] >= 0 ? '#6d28d9' : '#dc2626' }};">
                         Rp {{ number_format($row['profitBebasPeriode']) }}
+                    </td>
+                    <td class="r bold" style="color:#059669;">
+                        Rp {{ number_format($row['rekomendasiAmbil']) }}
                     </td>
                     <td class="r" style="color:{{ $row['doPayableAkhir'] > 0 ? '#dc2626' : 'var(--melon-dark)' }};">
                         {{ $row['doPayableAkhir'] > 0 ? 'Rp '.number_format($row['doPayableAkhir']) : '✓ Lunas' }}
@@ -502,7 +520,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8" style="text-align:center;padding:24px;color:var(--text3);">Belum ada data periode.</td>
+                    <td colspan="10" style="text-align:center;padding:24px;color:var(--text3);">Belum ada data periode.</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -515,8 +533,12 @@
                     <td class="r">Rp {{ number_format($grand['cfAdminFees']) }}</td>
                     <td class="r bold">Rp {{ number_format($grand['profitBersih']) }}</td>
                     <td class="r"></td>
+                    <td class="r"></td>
                     <td class="r bold" style="color:{{ $grand['profitBebas'] >= 0 ? '#6d28d9' : '#dc2626' }};">
                         Rp {{ number_format($grand['profitBebas']) }}
+                    </td>
+                    <td class="r bold" style="color:#059669;">
+                        Rp {{ number_format($grand['rekomendasiAmbil']) }}
                     </td>
                     <td class="r bold">{{ $grand['doPayableAkhir'] > 0 ? 'Rp '.number_format($grand['doPayableAkhir']) : '✓ Lunas' }} <span style="font-weight:400;font-size:9px;">(kini)</span></td>
                 </tr>
@@ -629,8 +651,25 @@
             </div>
             <span class="flow-op">=</span>
             <div class="flow-box result">
-                <div class="flow-label">Profit Bersih</div>
+                <div class="flow-label">Profit Bersih (Akrual)</div>
                 <div class="flow-value" style="color:#059669;">Rp {{ number_format($last['profitBersih']) }}</div>
+            </div>
+        </div>
+
+        <div class="flow-connector">↓</div>
+
+        {{-- ═══ TAHAP 1B: PROFIT KAS (nyata) ═══ --}}
+        <div class="flow-stage" style="justify-content:center;">
+            <div class="flow-box" style="border-style:dashed;border-color:#f59e0b;">
+                <div class="flow-label" style="color:#b45309;">Profit Kas (ubah kas tangan)</div>
+                <div class="flow-value" style="color:#b45309;">Rp {{ number_format($last['profitKas']) }}</div>
+                <div class="flow-label" style="color:var(--text3);font-size:8px;margin-top:4px;">netKas akhir − opening cash</div>
+            </div>
+            <span class="flow-op" style="color:#6d28d9;font-size:14px;">→</span>
+            <div class="flow-box" style="border-style:dashed;border-color:#6d28d9;">
+                <div class="flow-label" style="color:#6d28d9;">Rekomendasi Ambil (70%)</div>
+                <div class="flow-value" style="color:#6d28d9;">Rp {{ number_format($last['rekomendasiAmbil']) }}</div>
+                <div class="flow-label" style="color:var(--text3);font-size:8px;margin-top:4px;">aman untuk ditarik tiap bulan</div>
             </div>
         </div>
 

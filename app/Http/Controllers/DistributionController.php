@@ -125,6 +125,11 @@ class DistributionController extends Controller
 
             // ── Rekonsiliasi & Analisis ──
             $profitBersih      = $s['allMargin'] - $cf['totalExpense'] - $cf['totalAdminFees'];
+            // Profit kas: perubahan kas tangan (uang yang benar-benar bisa diambil)
+            $profitKas         = $cf['netKas'] - $period->opening_cash;
+            // Rekomendasi penarikan: 70% profit kas (konservatif), floor 0 biar nggak negatif
+            $rekomendasiAmbil  = max(0, (int) round($profitKas * 0.70));
+
             $totalUangDipegang = $cf['netKas'] + $cf['finalBankBal'] + $savingBalance;
             $nilaiStokAtCost   = $doSisaStok * self::HPP_PER_TABUNG;
             $totalKekayaan     = $totalUangDipegang + $s['piutang'] + $nilaiStokAtCost;
@@ -136,8 +141,9 @@ class DistributionController extends Controller
             // ── Utang ke Agen / Accounts Payable ──
             $doPayable = $nilaiDoHpp - ($cf['totalTransferred'] - $cf['totalSurplus']);
 
-            // ── Rekonsiliasi Hasil Penjualan vs Transfer Keluar (baru) ──
-            // Hasil Penjualan − TF Penampung − Admin TF − Operasional − TF Rekening Utama = Selisih
+            // Rekonsiliasi: kas masuk penjualan − deposit ke penampung − admin TF − biaya operasional
+            // = perubahan kas tangan. Transfer ke rekening utama tidak dihitung di sini karena
+            // hanya memindahkan uang dari kas ke bank (sudah tercerminkan di netKas).
             $selisihRekonsiliasi = $cf['totalIncome']
                 - $cf['totalDeposits']
                 - $cf['totalAdminFees']
@@ -211,14 +217,19 @@ class DistributionController extends Controller
 
                 // ── rekonsiliasi ──
                 'profitBersih'      => $profitBersih,
+                'profitKas'         => $profitKas,
+                'rekomendasiAmbil'  => $rekomendasiAmbil,
                 'totalUangDipegang' => $totalUangDipegang,
                 'nilaiStokAtCost'   => $nilaiStokAtCost,
                 'totalKekayaan'     => $totalKekayaan,
                 'selisihIncome'     => $selisihIncome,
                 'selisihMargin'     => $selisihMargin,
                 'selisihDoQty'      => $selisihDoQty,
+                // selisihSurplus tidak masuk isKonsisten karena mixing dua konsep akuntansi
+                // (totalSurplus dari AccountTransfer vs savingIn dari Savings) yang bisa
+                // berbeda karena alasan bisnis legit.
                 'selisihSurplus'    => $selisihSurplus,
-                'isKonsisten'       => $selisihIncome === 0 && $selisihMargin === 0 && $selisihDoQty === 0 && $selisihSurplus === 0,
+                'isKonsisten'       => $selisihIncome === 0 && $selisihMargin === 0 && $selisihDoQty === 0,
             ];
         })->values();
 
@@ -261,7 +272,11 @@ class DistributionController extends Controller
             $doPayableKumulatif   += $row['doPayable'];
             $row['doPayableAkhir'] = $doPayableKumulatif;
 
-            $row['profitBebasPeriode'] = $row['profitBersih'] - $row['doPayable'];
+            // doPayable bisa negatif kalau transfer lebih besar dari HPP DO.
+            // PKG: pakai max(0, ...) agar kelebihan transfer tidak menambah profitBebas
+            // (kelebihan transfer itu cuma berarti kamu transfer lebih dari cukup, bukan profit atas).
+            $doPayableEffective = max(0, $row['doPayable']);
+            $row['profitBebasPeriode'] = $row['profitBersih'] - $doPayableEffective;
 
             return $row;
         });
@@ -289,7 +304,7 @@ class DistributionController extends Controller
             'cfSurplus'          => $rows->sum('cfSurplus'),
             'cfNetKas'           => $rows->last()['cfNetKas'] ?? 0,
             'cfBankBal'          => $rows->last()['cfBankBal'] ?? 0,
-            'cfNetTotal'         => $rows->last()['cfNetTotal'] ?? 0,
+            'cfNetTotalTerakhir' => $rows->last()['cfNetTotal'] ?? 0,
             'bestCashflowPeriod' => $rows->sortByDesc('cfNetTotal')->first(),
             'cfSelisihRekon'     => $rows->sum('cfSelisihRekon'),
             'cfSelisihPenampungVsRekeningUtama' => $rows->sum('cfSelisihPenampungVsRekeningUtama'),
@@ -307,11 +322,13 @@ class DistributionController extends Controller
             'nilaiDoHpp'     => $rows->sum('nilaiDoHpp'),
             'kasVsDoSelisih' => $rows->last()['kasVsDoSelisihKumulatif'] ?? 0,
             'doPayableAkhir' => $doPayableAkhirKini,
-            'profitBebas'    => $rows->sum('profitBersih') - $doPayableAkhirKini,
+            'profitBebas'    => $rows->sum('profitBebasPeriode'),
             'doReceivedHpp'  => $rows->sum('doReceivedHpp'),
             'selisihDoReceivedVsTransfer' => $rows->sum('selisihDoReceivedVsTransfer'),
 
             'profitBersih'          => $rows->sum('profitBersih'),
+            'profitKas'             => $rows->last()['profitKas'] ?? 0,
+            'rekomendasiAmbil'      => $rows->last()['rekomendasiAmbil'] ?? 0,
             'totalUangDipegangKini' => $rows->last()['totalUangDipegang'] ?? 0,
             'totalKekayaanKini'     => $rows->last()['totalKekayaan'] ?? 0,
             'adaAnomali'            => $rows->contains(fn ($r) => !$r['isKonsisten']),

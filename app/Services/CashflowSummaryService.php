@@ -88,8 +88,8 @@ class CashflowSummaryService
             'totalAdminFees'   => $totalAdminFees,
             'totalTransferred' => $totalTransferred,
             'totalSurplus'     => $totalSurplus,
-            'finalBankBal'            => $dailyBankBalance[$daysInMonth], // ← salah, harusnya $dailyBalance
-            'netKas'      => $dailyBalance[$daysInMonth],      // ← salah, harusnya $dailyBankBalance
+            'finalBankBal'            => $dailyBankBalance[$daysInMonth],
+            'netKas'      => $dailyBalance[$daysInMonth],
             'netTotal'         => $netTotal,
             'rasioOperasional' => $rasioOperasional,
             'rasioGross'       => $rasioGross,
