@@ -36,13 +36,13 @@
     // ── Ringkasan DO Bulan Ini ────────────────────────────────────────────────
     $grandTotal   = $dos->sum('qty');
     $grandValue   = $dos->sum(fn ($d) => $d->qty * $d->price_per_unit);
-    $grandBayar   = $dos->sum(fn ($d) => $d->paid_amount + $d->transfers->sum('surplus'));
+    $grandBayar   = $dos->sum('paid_amount');
     $grandSurplus = $dos->sum(fn ($d) => $d->transfers->sum('surplus'));
     $grandPiutang = $grandValue - $grandBayar;
 
     // ── Carry-Over ───────────────────────────────────────────────────────────
     $coValue   = $carryoverDOs->sum(fn ($d) => $d->qty * $d->price_per_unit);
-    $coBayar   = $carryoverDOs->sum(fn ($d) => $d->paid_amount + $d->transfers->sum('surplus'));
+    $coBayar   = $carryoverDOs->sum('paid_amount');
     $coPiutang = $carryoverDOs->sum(fn ($d) => $d->remainingAmount());
 
     // ── Totals Gabungan ───────────────────────────────────────────────────────
@@ -63,7 +63,7 @@
         $dateStr = sprintf('%04d-%02d-%02d', $period->year, $period->month, $d);
         $dayDOs  = $dos->filter(fn ($do) => $do->do_date->format('Y-m-d') === $dateStr);
         $dv      = $dayDOs->sum(fn ($do) => $do->qty * $do->price_per_unit);
-        $dp      = $dayDOs->sum(fn ($do) => $do->paid_amount + $do->transfers->sum('surplus'));
+        $dp      = $dayDOs->sum('paid_amount');
 
         if ($dv > 0) {
             $hariDOLabels[]  = $d;
@@ -115,8 +115,8 @@
 
         $nilai  = $outletDOs->sum(fn ($d) => $d->qty * $d->price_per_unit)
                 + $coOutlet->sum(fn ($d) => $d->qty * $d->price_per_unit);
-        $bayar  = $outletDOs->sum(fn ($d) => $d->paid_amount + $d->transfers->sum('surplus'))
-                + $coOutlet->sum(fn ($d) => $d->paid_amount + $d->transfers->sum('surplus'));
+        $bayar  = $outletDOs->sum('paid_amount')
+                + $coOutlet->sum('paid_amount');
         $piutang = $nilai - $bayar;
 
         return [
@@ -654,7 +654,7 @@
                     <td class="r bold">{{ number_format($do->qty) }}</td>
                     <td class="r">Rp {{ number_format($do->price_per_unit) }}</td>
                     <td class="r bold">Rp {{ number_format($do->qty * $do->price_per_unit) }}</td>
-                    <td class="r">Rp {{ number_format($do->paid_amount + $do->transfers->sum('surplus')) }}</td>
+                    <td class="r">Rp {{ number_format($do->paid_amount) }}</td>
                     <td class="r text-blue">Rp {{ number_format($do->transfers->sum('surplus')) }}</td>
                     <td>
                         @if($do->payment_status === 'paid')
@@ -671,7 +671,9 @@
                             <a href="{{ route('do.edit', $do) }}" class="link-edit">Edit</a>
                             <form method="POST" action="{{ route('do.destroy', $do) }}" class="inline-form" onsubmit="return confirm('Hapus DO ini?')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="link-btn danger">Hapus</button>
+                                <button type="submit" class="link-btn danger" {{ $do->transfers()->count() > 0 ? 'disabled style="opacity:0.4"' : '' }}>
+                                    {{ $do->transfers()->count() > 0 ? '🔒' : 'Hapus' }}
+                                </button>
                             </form>
                         </div>
                     </td>
@@ -689,7 +691,7 @@
                     <td class="r bold">{{ number_format($dos->sum('qty')) }}</td>
                     <td class="r"></td>
                     <td class="r bold">Rp {{ number_format($dos->sum(fn($d) => $d->qty * $d->price_per_unit)) }}</td>
-                    <td class="r bold">Rp {{ number_format($dos->sum(fn($d) => $d->paid_amount + $d->transfers->sum('surplus'))) }}</td>
+                    <td class="r bold">Rp {{ number_format($dos->sum('paid_amount')) }}</td>
                     <td class="r bold">Rp {{ number_format($dos->sum(fn($d) => $d->transfers->sum('surplus'))) }}</td>
                     <td></td>
                     @if($period->status === 'open') <td></td> @endif
@@ -739,7 +741,7 @@
                     <td class="bold">{{ $do->outlet->name }}</td>
                     <td class="r bold">{{ number_format($do->qty) }}</td>
                     <td class="r">Rp {{ number_format($do->qty * $do->price_per_unit) }}</td>
-                    <td class="r text-melon">Rp {{ number_format($do->paid_amount + $do->transfers->sum('surplus')) }}</td>
+                    <td class="r text-melon">Rp {{ number_format($do->paid_amount) }}</td>
                     <td class="r text-blue">Rp {{ number_format($do->transfers->sum('surplus')) }}</td>
                     <td class="r bold {{ $do->remainingAmount() > 0 ? 'text-red' : 'text-melon' }}">
                         Rp {{ number_format($do->remainingAmount()) }}

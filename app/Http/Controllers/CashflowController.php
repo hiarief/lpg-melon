@@ -162,6 +162,7 @@ class CashflowController extends Controller
             'sales'     => array_map(fn($d) => $salesByDay[$d] ?? 0, $jsLabels),
             'expenses'  => array_map(fn($d) => $dayTotals[$d]  ?? 0, $jsLabels),
             'deposits'  => array_map(fn($d) => $depositsByDay[$d]['total'] ?? 0, $jsLabels),
+            'adminFees' => array_map(fn($d) => $depositsByDay[$d]['admin'] ?? 0, $jsLabels),
             'transfers' => array_map(fn($d) => $transfersByDay[$d]['total'] ?? 0, $jsLabels),
             'cashBal'   => array_map(fn($d) => $dailyBalance[$d], $jsLabels),
             'bankBal'   => array_map(fn($d) => $dailyBankBalance[$d], $jsLabels),

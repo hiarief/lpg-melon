@@ -37,8 +37,11 @@ class TransferController extends Controller
         // Unpaid DOs (period ini + sebelumnya)
         [$unpaidDOs, $prevUnpaidDOs, $allUnpaidDOs] = $this->resolveUnpaidDOs($period);
 
+        // Hitung total piutang DO sebelum agregat
+        $totalPiutangDO = $allUnpaidDOs->sum(fn($d) => $d->remainingAmount());
+
         // Agregat utama
-        $totals = $this->calculateTotals($period, $deposits, $transfers);
+        $totals = $this->calculateTotals($period, $deposits, $transfers, $totalPiutangDO);
 
         // Data untuk chart
         $chartData = $this->buildChartData($deposits, $transfers, $period->opening_penampung, $period);
@@ -49,7 +52,6 @@ class TransferController extends Controller
         // Mutasi / riwayat saldo
         $balanceRows = $this->buildBalanceRows($period->opening_penampung, $deposits, $transfers);
 
-        $totalPiutangDO = $allUnpaidDOs->sum(fn($d) => $d->remainingAmount());
         return view('transfer.index', array_merge(
             compact('period', 'periods', 'couriers', 'deposits', 'transfers','totalPiutangDO',
                     'unpaidDOs', 'prevUnpaidDOs', 'allUnpaidDOs',
@@ -244,7 +246,7 @@ class TransferController extends Controller
      * Hitung semua angka agregat; kembalikan sebagai array asosiatif
      * agar bisa di-merge langsung ke compact().
      */
-    private function calculateTotals(Period $period, Collection $deposits, Collection $transfers): array
+    private function calculateTotals(Period $period, Collection $deposits, Collection $transfers, int $totalPiutangDO = 0): array
     {
         $totalDeposited     = $deposits->sum('amount');
         $totalAdmin         = $deposits->sum('admin_fee');
@@ -253,7 +255,8 @@ class TransferController extends Controller
         $totalTransferred   = $transfers->sum('amount');
         $totalTransferQty   = $transfers->sum('do_equivalent_qty');
         $totalSurplus       = $transfers->sum('surplus');
-        $penampungNow       = $period->opening_penampung + $totalDeposited - $totalTransferred;
+        // Penampung sekarang: opening + setoran masuk - transfer keluar - admin fee (jika admin keluar dari penampung)
+        $penampungNow       = $period->opening_penampung + $totalDeposited - $totalTransferred - $totalAdmin;
 
         // Utilisasi: seberapa besar dari penampung sudah tersalurkan
         $utilisasiBar = ($period->opening_penampung + $totalDeposited) > 0
@@ -263,7 +266,7 @@ class TransferController extends Controller
         return compact(
             'totalDeposited', 'totalAdmin', 'totalNominal', 'totalBersih',
             'totalTransferred', 'totalTransferQty', 'totalSurplus',
-            'penampungNow', 'utilisasiBar'
+            'penampungNow', 'utilisasiBar', 'totalPiutangDO'
         );
     }
 
@@ -277,9 +280,11 @@ class TransferController extends Controller
 
         // Indeks per hari
         $depByDay = [];
+        $adminByDay = [];
         foreach ($deposits as $d) {
             $day = $d->deposit_date->day;
             $depByDay[$day] = ($depByDay[$day] ?? 0) + $d->amount;
+            $adminByDay[$day] = ($adminByDay[$day] ?? 0) + $d->admin_fee;
         }
 
         $tfByDay = [];
@@ -289,17 +294,19 @@ class TransferController extends Controller
         }
 
         // Hanya hari yang ada aktivitas
-        $trendLabels = $trendDep = $trendTf = $trendSaldo = [];
+        $trendLabels = $trendDep = $trendTf = $trendAdmin = $trendSaldo = [];
         $saldoRun = $openingBalance;
 
         for ($d = 1; $d <= $daysInMonth; $d++) {
             $dep = $depByDay[$d] ?? 0;
             $tf  = $tfByDay[$d]  ?? 0;
-            if ($dep > 0 || $tf > 0) {
-                $saldoRun      += $dep - $tf;
+            $admin = $adminByDay[$d] ?? 0;
+            if ($dep > 0 || $tf > 0 || $admin > 0) {
+                $saldoRun += $dep - $tf - $admin;
                 $trendLabels[]  = $d;
                 $trendDep[]     = $dep;
                 $trendTf[]      = $tf;
+                $trendAdmin[]   = $admin;
                 $trendSaldo[]   = $saldoRun;
             }
         }
@@ -316,6 +323,7 @@ class TransferController extends Controller
             'trendLabels'  => $trendLabels,
             'trendDep'     => $trendDep,
             'trendTf'      => $trendTf,
+            'trendAdmin'   => $trendAdmin,
             'trendSaldo'   => $trendSaldo,
             'kurirNames'   => array_keys($kurirMap),
             'kurirTotals'  => array_values($kurirMap),
@@ -336,11 +344,13 @@ class TransferController extends Controller
             ? round($totals['totalAdmin'] / $totals['totalDeposited'] * 100, 2)
             : 0;
 
-        // piutangPct harus dihitung dari allUnpaidDOs — kita simpan totalPiutangDO di totals bila ada,
-        // tapi karena belum masuk sini, kita biarkan view memanggil $indicators['piutangPct'] dari luar.
-        // Nilai ini akan disempurnakan via compact di index() setelah resolveUnpaidDOs.
+        // Piutang DO sebagai % dari (piutang + transfer) — semakin rendah semakin sehat
+        $piutangPct = ($totals['totalPiutangDO'] ?? 0) > 0
+            && ($totals['totalPiutangDO'] + $totals['totalTransferred']) > 0
+            ? round($totals['totalPiutangDO'] / ($totals['totalPiutangDO'] + $totals['totalTransferred']) * 100)
+            : 0;
 
-        return compact('utilisasi', 'rasioAdmin');
+        return compact('utilisasi', 'rasioAdmin', 'piutangPct');
     }
 
     /**

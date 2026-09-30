@@ -13,9 +13,7 @@
     // Turunkan indikator dari array $indicators yang dikirim controller
     $utilisasi  = $indicators['utilisasi'];
     $rasioAdmin = $indicators['rasioAdmin'];
-    $piutangPct = isset($totalPiutangDO) && ($totalPiutangDO + $totalTransferred) > 0
-        ? round($totalPiutangDO / ($totalPiutangDO + $totalTransferred) * 100)
-        : 0;
+    $piutangPct = $indicators['piutangPct'] ?? 0;
 @endphp
 
 <style>

@@ -139,9 +139,13 @@ class DistributionController extends Controller
             $kasVsDoSelisih = $s['allPaid'] - $nilaiDoHpp;
 
             // ── Utang ke Agen / Accounts Payable ──
-            $doPayable = $nilaiDoHpp - ($cf['totalTransferred'] - $cf['totalSurplus']);
+            // Pakai doReceivedQty (tanpa carry-over) agar KONSISTEN dengan
+            // selisihDoReceivedVsTransfer di bawah. Carry-over DO sudah masuk
+            // stok awal dan seharusnya sudah dibayar di periode sebelumnya.
+            $doReceivedHpp  = $doReceivedQty * self::HPP_PER_TABUNG;
+            $doPayable      = $doReceivedHpp - ($cf['totalTransferred'] - $cf['totalSurplus']);
 
-            // Rekonsiliasi: kas masuk penjualan − deposit ke penampung − admin TF − biaya operasional
+            // ── Rekonsiliasi: kas masuk penjualan − deposit ke penampung − admin TF − biaya operasional
             // = perubahan kas tangan. Transfer ke rekening utama tidak dihitung di sini karena
             // hanya memindahkan uang dari kas ke bank (sudah tercerminkan di netKas).
             $selisihRekonsiliasi = $cf['totalIncome']
@@ -157,7 +161,9 @@ class DistributionController extends Controller
                 - $selisihPenampungVsRekeningUtama;
 
             // ── Nilai DO Diterima (HPP) vs TF Rekening Utama (baru) ──
-            $doReceivedHpp = $doReceivedQty * self::HPP_PER_TABUNG;
+            // Catatan: sama dengan doPayable tapi tanda berlawanan:
+            //   doPayable           = HPP_DOREC - (TF - surplus)    → positif = UTANG
+            //   selisihDoReceived  = (TF - surplus) - HPP_DOREC    → positif = KEPASANGAN
             $selisihDoReceivedVsTransfer = ($cf['totalTransferred'] - $cf['totalSurplus']) - $doReceivedHpp;
 
             return [

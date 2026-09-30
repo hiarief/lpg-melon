@@ -639,6 +639,7 @@
         sales:     @json($chartData['sales']),
         expenses:  @json($chartData['expenses']),
         deposits:  @json($chartData['deposits']),
+        adminFees: @json($chartData['adminFees']),
         transfers: @json($chartData['transfers']),
         cashBal:   @json($chartData['cashBal']),
         bankBal:   @json($chartData['bankBal']),
@@ -648,7 +649,7 @@
 
     // Prediksi & MC params (disiapkan controller)
     const PRED = {
-        wma:   {{ round($pred['predKas']) }},
+        wma:   {{ round($pred['predKasSetelahGaji'] ?? $pred['predKas']) }},
         ols:   {{ round($ols['predKas']) }},
         holt:  {{ round($pred['holtsPredKas']) }},
         wmaConf:  {{ $pred['confidence'] }},
@@ -712,7 +713,7 @@
        CHART TREN HARIAN
     ═══════════════════════════════════════════════════════════════ */
     (function () {
-        const net = DATA.labels.map((_, i) => DATA.sales[i] - DATA.expenses[i] - DATA.deposits[i]);
+        const net = DATA.labels.map((_, i) => DATA.sales[i] - DATA.expenses[i] - DATA.deposits[i] - DATA.adminFees[i]);
 
         const mkBar = (label, data, bg, border, stack) => ({
             label, data: data.map(v => v / 1000), type: 'bar',
