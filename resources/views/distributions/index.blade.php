@@ -750,6 +750,49 @@ $topCustName = $custBarNames->first()['name'] ?? '-';
                     <td class="r text-muted" style="font-size:10px;"></td>
                 </tr>
 
+                {{-- Penjualan (Rp) per hari --}}
+                <tr class="bg-blue-50">
+                    <td class="sticky-col-body-lg min-w-110 bg-blue-50">
+                        <span class="grid-hdr" style="color:#1d4ed8;">Penjualan (Rp)</span>
+                        <div class="grid-sub">nilai jual per hari</div>
+                    </td>
+                    @for($day = 1; $day <= $daysInMonth; $day++)
+                        @php $dVal = $dailyFull[$day]['val'] ?? 0; @endphp
+                        <td class="r" style="font-size:10px;color:{{ $dVal > 0 ? '#1d4ed8' : 'var(--border)' }};font-weight:{{ $dVal > 0 ? 600 : 400 }};">
+                            {{ $dVal > 0 ? number_format($dVal / 1000).'k' : '-' }}
+                        </td>
+                    @endfor
+                    <td class="r" style="color:#1d4ed8;font-weight:700;font-size:11px;">Rp {{ number_format($s['allVal']) }}</td>
+                    <td class="r" style="color:#1d4ed8;font-weight:700;font-size:11px;"></td>
+                    <td class="r" style="color:#1d4ed8;font-weight:700;font-size:11px;"></td>
+                    <td class="r" style="color:#1d4ed8;font-weight:700;font-size:11px;"></td>
+                    <td class="r" style="color:#1d4ed8;font-weight:700;font-size:11px;"></td>
+                    <td class="r" style="color:#1d4ed8;font-weight:700;font-size:11px;"></td>
+                </tr>
+
+                {{-- Margin (Rp) per hari — setelah HPP Rp16.000/tabung --}}
+                <tr class="bg-mint-50">
+                    <td class="sticky-col-body-lg min-w-110 bg-mint-50">
+                        <span class="grid-hdr" style="color:#059669;">Margin (Rp)</span>
+                        <div class="grid-sub">penjualan − HPP 16rb/tab</div>
+                    </td>
+                    @for($day = 1; $day <= $daysInMonth; $day++)
+                        @php
+                            $dMar = $dailyFull[$day]['margin'] ?? 0;
+                            $dQty = $dailyFull[$day]['qty'] ?? 0;
+                        @endphp
+                        <td class="r" style="font-size:10px;color:{{ $dMar > 0 ? '#059669' : ($dQty > 0 ? '#dc2626' : 'var(--border)') }};font-weight:{{ $dQty > 0 ? 600 : 400 }};">
+                            {{ $dQty > 0 ? number_format($dMar / 1000).'k' : '-' }}
+                        </td>
+                    @endfor
+                    <td class="r" style="color:#059669;font-weight:700;font-size:11px;"></td>
+                    <td class="r" style="color:#059669;font-weight:700;font-size:11px;"></td>
+                    <td class="r" style="color:#059669;font-weight:700;font-size:11px;"></td>
+                    <td class="r" style="color:#059669;font-weight:700;font-size:11px;"></td>
+                    <td class="r" style="color:#059669;font-weight:700;font-size:11px;">Rp {{ number_format($s['allMargin']) }}</td>
+                    <td class="r" style="color:#059669;font-weight:700;font-size:11px;"></td>
+                </tr>
+
                 {{-- Avg per hari aktif --}}
                 <tr>
                     <td class="sticky-col-body-lg min-w-110 bg-surface2">

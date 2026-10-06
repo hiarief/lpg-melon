@@ -887,6 +887,7 @@
         .bg-purple-50 { background:#F4F2FC; }
         .bg-mint-50 { background:var(--ok-bg); }
         .bg-red-50 { background:#FDF1F0; }
+        .bg-blue-50 { background:var(--info-bg); }
         .bg-surface2 { background:var(--surface2); }
         .row-contract { background:#FFF8E6; }
         .min-w-110 { min-width:110px; }

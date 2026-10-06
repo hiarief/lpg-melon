@@ -948,8 +948,10 @@ class DistributionController extends Controller
 
             $result[$d] = [
                 'qty'      => $qty,
-                'val'      => $val,
+                'val'      => $val,                              // penjualan hari itu (Rp)
                 'paid'     => $paid,
+                'hpp'      => $qty * self::HPP_PER_TABUNG,       // HPP Rp16.000/tabung
+                'margin'   => $val - ($qty * self::HPP_PER_TABUNG), // margin setelah HPP
                 'avgHarga' => $qty > 0 ? round($val / $qty) : 0,
                 'selisih'  => $val - $paid,
             ];
