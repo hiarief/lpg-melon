@@ -378,6 +378,99 @@
     </div>
 </div>
 
+{{-- ALUR DANA CARD — Mapping Struktur Aliran Dana → Profit --}}
+@if($rows->count()>0)
+<div class="s-card cmp-section">
+    <div class="s-card-header">🔄 Alur Dana: Dari Penjualan Hingga Profit Bebas</div>
+    <div style="padding:16px 14px;">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+
+            <!-- Tahap 1: Penjualan → Kas + Piutang -->
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;min-width:140px;">
+                    <div style="font-size:10px;color:#1d4ed8;font-weight:600;">PENJUALAN (TAGIHAN)</div>
+                    <div style="font-size:16px;font-weight:700;color:#1d4ed8;">Rp {{ number_format($grand['allVal']) }}</div>
+                    <div style="font-size:9px;color:#64748b;">{{ number_format($grand['allQty']) }} tabung</div>
+                </div>
+                <div style="font-size:18px;color:#94a3b8;">→</div>
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;min-width:140px;">
+                    <div style="font-size:10px;color:#059669;font-weight:600;">KAS DITERIMA</div>
+                    <div style="font-size:16px;font-weight:700;color:#059669;">Rp {{ number_format($grand['allPaid']) }}</div>
+                    <div style="font-size:9px;color:#64748b;">{{ $grand['allVal'] > 0 ? number_format($grand['allPaid'] / $grand['allVal'] * 100, 1) : 0 }}% lunas</div>
+                </div>
+                <div style="font-size:18px;color:#94a3b8;">+</div>
+                <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;min-width:140px;">
+                    <div style="font-size:10px;color:#dc2626;font-weight:600;">PIUTANG</div>
+                    <div style="font-size:16px;font-weight:700;color:#dc2626;">Rp {{ number_format($grand['piutang']) }}</div>
+                    <div style="font-size:9px;color:#64748b;">belum terbayar</div>
+                </div>
+            </div>
+
+            <!-- Tahap 2: Margin → Profit Bersih -->
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;min-width:140px;">
+                    <div style="font-size:10px;color:#059669;font-weight:600;">MARGIN (KOTOR)</div>
+                    <div style="font-size:16px;font-weight:700;color:#059669;">Rp {{ number_format($grand['allMargin']) }}</div>
+                    <div style="font-size:9px;color:#64748b;">penjualan − HPP 16rb/tab</div>
+                </div>
+                <div style="font-size:18px;color:#94a3b8;">−</div>
+                <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;min-width:140px;">
+                    <div style="font-size:10px;color:#dc2626;font-weight:600;">OPS + ADMIN</div>
+                    <div style="font-size:16px;font-weight:700;color:#dc2626;">Rp {{ number_format($grand['cfExpense'] + $grand['cfAdminFees']) }}</div>
+                    <div style="font-size:9px;color:#64748b;">ops {{ number_format($grand['cfExpense']) }} + admin {{ number_format($grand['cfAdminFees']) }}</div>
+                </div>
+                <div style="font-size:18px;color:#94a3b8;">=</div>
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;min-width:140px;">
+                    <div style="font-size:10px;color:#1d4ed8;font-weight:600;">PROFIT BERSIH</div>
+                    <div style="font-size:16px;font-weight:700;color:#1d4ed8;">Rp {{ number_format($grand['profitBersih']) }}</div>
+                    <div style="font-size:9px;color:#64748b;">margin − ops − admin</div>
+                </div>
+            </div>
+
+            <!-- Tahap 3: Profit Bersih → Profit Kas → Profit Bebas -->
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;min-width:140px;">
+                    <div style="font-size:10px;color:#1d4ed8;font-weight:600;">PROFIT BERSIH</div>
+                    <div style="font-size:16px;font-weight:700;color:#1d4ed8;">Rp {{ number_format($grand['profitBersih']) }}</div>
+                    <div style="font-size:9px;color:#64748b;">dari margin</div>
+                </div>
+                <div style="font-size:18px;color:#94a3b8;">→</div>
+                <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;min-width:140px;">
+                    <div style="font-size:10px;color:#b45309;font-weight:600;">PROFIT KAS</div>
+                    <div style="font-size:16px;font-weight:700;color:#b45309;">Rp {{ number_format($grand['profitKas']) }}</div>
+                    <div style="font-size:9px;color:#64748b;">netKas − opening</div>
+                </div>
+                <div style="font-size:18px;color:#94a3b8;">−</div>
+                <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;min-width:140px;">
+                    <div style="font-size:10px;color:#dc2626;font-weight:600;">UTANG DO</div>
+                    <div style="font-size:16px;font-weight:700;color:#dc2626;">Rp {{ number_format($grand['doPayableAkhir']) }}</div>
+                    <div style="font-size:9px;color:#64748b;">utang ke agen</div>
+                </div>
+                <div style="font-size:18px;color:#94a3b8;">=</div>
+                <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px 14px;min-width:140px;border-width:2px;">
+                    <div style="font-size:10px;color:#6d28d9;font-weight:600;">PROFIT BEBAS</div>
+                    <div style="font-size:16px;font-weight:700;color:#6d28d9;">Rp {{ number_format($grand['profitBebas']) }}</div>
+                    <div style="font-size:9px;color:#64748b;">profit − utang Agen</div>
+                </div>
+            </div>
+
+            <!-- Summary bar -->
+            <div style="background:linear-gradient(135deg,#f0fdf4,#eff6ff);border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;margin-top:4px;">
+                <div style="font-size:11px;font-weight:700;color:#059669;margin-bottom:6px;">📊 Ringkasan Aliran Dana</div>
+                <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:10px;color:#475569;">
+                    <span>Penjualan: <strong>Rp {{ number_format($grand['allVal']) }}</strong></span>
+                    <span>→ Kas: <strong>Rp {{ number_format($grand['allPaid']) }}</strong></span>
+                    <span>→ Margin: <strong>Rp {{ number_format($grand['allMargin']) }}</strong></span>
+                    <span>→ Profit Bersih: <strong>Rp {{ number_format($grand['profitBersih']) }}</strong></span>
+                    <span>→ Profit Bebas: <strong style="color:#6d28d9;">Rp {{ number_format($grand['profitBebas']) }}</strong></span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+@endif
+
 {{-- FLOW CARD --}}
 @if($rows->count()>0)
 <div class="s-card cmp-section">
