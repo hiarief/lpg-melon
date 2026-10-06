@@ -1,15 +1,26 @@
 @extends('layouts.app')
 @section('title', 'DO Agen')
+
+@push('styles')
+<style>
+    /* KPI DO — paksa 2 kolom × 2 baris (4 card) di semua ukuran layar */
+    .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+</style>
+@endpush
+
 @section('content')
 
 {{-- ══════════════════════════════════════════════════════════════
-     HEADER & PERIOD SELECTOR
+    HEADER & PERIOD SELECTOR
 ══════════════════════════════════════════════════════════════ --}}
+
 <div class="page-header-row">
     <div class="page-header-left">
         <span class="page-title">📦 DO Agen</span>
 
-        <form method="GET" action="{{ route('do.index') }}">
+        <form method="GET" action="{{ route('do.index') }}" style="display:inline">
             <select name="period_id" onchange="this.form.submit()" class="field-select field-select-inline">
                 @foreach($periods as $p)
                     <option value="{{ $p->id }}" {{ $p->id == $period->id ? 'selected' : '' }}>{{ $p->label }}</option>
@@ -230,19 +241,19 @@
      KPI CARDS
 ══════════════════════════════════════════════════════════════ --}}
 <div class="kpi-grid">
-    <div class="card kpi-card">
+    <div class="card kpi-card" data-accent="orange">
         <div class="kpi-label">Total DO Diterima</div>
         <div class="kpi-value text-orange">{{ number_format($grandTotal) }} tab</div>
         <div class="kpi-sub">Rp {{ number_format($grandValue) }}</div>
     </div>
 
-    <div class="card kpi-card">
+    <div class="card kpi-card" data-accent="melon">
         <div class="kpi-label">Total Terbayar ke Agen</div>
         <div class="kpi-value text-melon">Rp {{ number_format($totalBayarAll) }}</div>
         <div class="kpi-sub">{{ number_format($rasioLunas, 1) }}% dari nilai DO</div>
     </div>
 
-    <div class="card kpi-card">
+    <div class="card kpi-card" data-accent="blue">
         <div class="kpi-label">Piutang ke Agen</div>
         <div class="kpi-value {{ $totalPiutangAll > 0 ? 'text-red' : 'text-melon' }}">
             {{ $totalPiutangAll > 0 ? 'Rp '.number_format($totalPiutangAll) : '✓ Lunas' }}
@@ -250,7 +261,7 @@
         <div class="kpi-sub">{{ number_format($pctPiutang, 1) }}% · termasuk carry-over</div>
     </div>
 
-    <div class="card kpi-card">
+    <div class="card kpi-card" data-accent="purple">
         <div class="kpi-label">Surplus Transfer</div>
         <div class="kpi-value text-blue">Rp {{ number_format($grandSurplus) }}</div>
         <div class="kpi-sub">dari transfer ke rek utama</div>
@@ -681,7 +692,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9" class="empty-row-cell">Belum ada DO baru untuk periode ini.</td>
+                    <td colspan="{{ $period->status === 'open' ? 9 : 8 }}" class="empty-row-cell">Belum ada DO baru untuk periode ini.</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -692,7 +703,7 @@
                     <td class="r"></td>
                     <td class="r bold">Rp {{ number_format($dos->sum(fn($d) => $d->qty * $d->price_per_unit)) }}</td>
                     <td class="r bold">Rp {{ number_format($dos->sum('paid_amount')) }}</td>
-                    <td class="r bold">Rp {{ number_format($dos->sum(fn($d) => $d->transfers->sum('surplus'))) }}</td>
+                    <td class="r bold">Rp {{ number_format($dos->sum(fn($d) => $do->transfers->sum('surplus') ?? 0)) }}</td>
                     <td></td>
                     @if($period->status === 'open') <td></td> @endif
                 </tr>

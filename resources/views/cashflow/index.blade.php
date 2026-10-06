@@ -175,7 +175,7 @@
                 <div style="font-size:10px;color:var(--text3)">avg Rp {{ number_format($summary['avgSales']) }}/hari</div>
             </div>
             <div class="card" style="padding:10px 12px">
-                <div style="font-size:10px;color:var(--text3)">Margin bersih (setelah HPP)</div>
+                <div style="font-size:10px;color:var(--text3)">Margin Kotor (setelah HPP)</div>
                 <div style="font-size:16px;font-weight:600;color:#0369a1;margin-top:2px">Rp {{ number_format($totalMargin) }}</div>
                 <div style="font-size:10px;color:var(--text3)">avg Rp {{ number_format($totalMargin > 0 ? round($totalMargin / $summary['cfActiveDays']) : 0) }}/hari</div>
             </div>
@@ -202,11 +202,11 @@
                 <div style="font-size:10px;color:var(--text3)">avg Rp {{ number_format($summary['avgExpense']) }}/hari</div>
             </div>
             @include('cashflow._rasio-card', [
-                'label'     => 'Rasio ops / margin bersih',
-                'note'      => 'biaya ÷ margin',
+                'label'     => 'Rasio ops / margin kotor',
+                'note'      => 'ops ÷ margin kotor',
                 'value'     => $summary['rasioOperasional'],
-                'threshold' => 35,
-                'ideal'     => 'ideal <35% dari margin',
+                'threshold' => 100,
+                'ideal'     => 'ideal <100% (ops < margin)',
             ])
             @include('cashflow._rasio-card', [
                 'label'     => 'Rasio gross kas keluar',
@@ -270,6 +270,88 @@
             </div>
             <div style="font-size:20px;font-weight:700;color:{{ $netTotal >= 0 ? 'var(--melon-dark)' : '#dc2626' }};white-space:nowrap">
                 Rp {{ number_format($netTotal) }}
+            </div>
+        </div>
+
+        {{-- ═══════════════════════════════════════════════════════
+            DETAIL MARGIN BERSIH
+            =====================================================
+            Formula: Margin Bersih = Margin Kotor − Pengeluaran Operasional − Admin TF
+            - Margin Kotor = SUM(qty × (price_per_unit − HPP)) dari distributions
+            - HPP = Rp16.000/tabung (konstanta)
+            - Pengeluaran = SUM(daily_expenses.amount)
+            - Admin TF = SUM(courier_deposits.admin_fee)
+            - Margin Bersih = Margin Kotor − Total Pengeluaran − Total Admin TF
+            - Jika Margin Bersih < 0 → operasional rugi, belum bisa ambil profit
+            - Jika Margin Bersih > 0 tapi doPayable > 0 → profit terikat utang agen
+            - Profit Bebas = Margin Bersih − doPayable (yang bisa ditarik)
+        ═══════════════════════════════════════════════════════ --}}
+        <div style="background:linear-gradient(135deg,#f0fdf4 0%,#ecfdf5 100%);border:0.5px solid #86efac;border-radius:12px;padding:14px;margin-bottom:12px">
+            <div style="font-size:13px;font-weight:700;color:#059669;margin-bottom:10px">💵 Detail Margin Bersih — {{ $period->label }}</div>
+
+            {{-- ── Card breakdown penghasil ── --}}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:10px">
+                <div style="background:#fff;border-radius:8px;padding:10px 12px;border:0.5px solid #d1fae5">
+                    <div style="font-size:10px;color:var(--text3)">Total Penjualan (paid_amount)</div>
+                    <div style="font-size:16px;font-weight:700;color:#059669">Rp {{ number_format($totalIncome) }}</div>
+                    <div style="font-size:9px;color:var(--text3)">SUM(Distributions.paid_amount)</div>
+                </div>
+                <div style="background:#fff;border-radius:8px;padding:10px 12px;border:0.5px solid #d1fae5">
+                    <div style="font-size:10px;color:var(--text3)">Total Terutang (total_value)</div>
+                    <div style="font-size:16px;font-weight:700;color:var(--text2)">Rp —</div>
+                    <div style="font-size:9px;color:var(--text3)">SUM(Distributions.total_value) ditampilkan di piutang card</div>
+                </div>
+            </div>
+
+            {{-- ── Card breakdown pengurang ── --}}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:10px">
+                <div style="background:#fff;border-radius:8px;padding:10px 12px;border:0.5px solid #fecaca">
+                    <div style="font-size:10px;color:var(--text3)">Pengeluaran Operasional</div>
+                    <div style="font-size:16px;font-weight:700;color:#dc2626">Rp {{ number_format($totalExpense) }}</div>
+                    <div style="font-size:9px;color:var(--text3)">SUM(DailyExpenses.amount) semua kategori</div>
+                </div>
+                <div style="background:#fff;border-radius:8px;padding:10px 12px;border:0.5px solid #ddd6fe">
+                    <div style="font-size:10px;color:var(--text3)">Admin Transfer Penampung</div>
+                    <div style="font-size:16px;font-weight:700;color:#6d28d9">Rp {{ number_format($totalAdminFees) }}</div>
+                    <div style="font-size:9px;color:var(--text3)">SUM(CourierDeposits.admin_fee)</div>
+                </div>
+            </div>
+
+            {{-- ── Detail perhitungan Margin Kotor --}}
+            <div style="background:#f0fdf4;border-radius:8px;padding:10px 12px;border:0.5px solid #86efac;margin-bottom:8px;font-size:11px">
+                <div style="font-weight:700;color:#059669;margin-bottom:4px">Perhitungan Margin Kotor</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;color:var(--text2)">
+                    <span>Total Tabung (distribusi):</span><span class="r" style="text-align:right;font-weight:600">{{ number_format($totalTabungAktual) }} tab</span>
+                    <span>Harga Jual per Tabung:</span><span class="r" style="text-align:right;font-weight:600">Rp {{ number_format($totalIncome / max(1,$totalTabungAktual) * 1000) }}</span>
+                    <span>HPP per Tabung:</span><span class="r" style="text-align:right;font-weight:600">Rp 16.000</span>
+                    <span>Margin/Tabung:</span><span class="r" style="text-align:right;font-weight:600;color:#059669">Rp {{ number_format(($totalIncome / max(1,$totalTabungAktual)) - 16000) }}</span>
+                </div>
+                <div style="margin-top:6px;padding-top:6px;border-top:0.5px dashed #86efac;display:flex;justify-content:space-between;font-size:12px">
+                    <span>Margin Kotor = Total Penjualan − (Total Tabung × HPP)</span>
+                    <span class="r" style="font-weight:700;color:#059669">Rp {{ number_format($totalMargin) }}</span>
+                </div>
+            </div>
+
+            {{-- ── Ringkasan Margin Bersih ── --}}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:8px">
+                <div style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-radius:8px;padding:10px 12px;border:0.5px solid #059669">
+                    <div style="font-size:10px;color:#065f46">Margin Bersih</div>
+                    <div style="font-size:18px;font-weight:800;color:{{ ($totalMargin - $totalExpense - $totalAdminFees) >= 0 ? '#059669' : '#dc2626' }}">
+                        Rp {{ number_format($totalMargin - $totalExpense - $totalAdminFees) }}
+                    </div>
+                    <div style="font-size:9px;color:#065f46">Margin Kotor − Pengeluaran − Admin TF</div>
+                </div>
+                <div style="background:#fff;border-radius:8px;padding:10px 12px;border:0.5px solid var(--border)">
+                    <div style="font-size:10px;color:var(--text3)">Piutang Belum Bayar</div>
+                    <div style="font-size:18px;font-weight:800;color:#b45309">Rp {{ number_format($piutangBelumBayar) }}</div>
+                    <div style="font-size:9px;color:var(--text3)">total_value − paid_amount (deferred/partial)</div>
+                </div>
+            </div>
+
+            <div style="margin-top:8px;padding-top:8px;border-top:0.5px dashed #86efac;display:flex;gap:16px;font-size:11px;color:var(--text2);flex-wrap:wrap">
+                <span>Rasio opsional: <strong>{{ $summary['rasioOperasional'] }}%</strong> (ops ÷ margin kotor)</span>
+                <span>Rasio gross: <strong>{{ $summary['rasioGross'] }}%</strong> ((ops+deposit+admin) ÷ kas tersedia)</span>
+                <span>Hari aktif: <strong>{{ $summary['cfActiveDays'] }}/{{ $daysInMonth }}</strong></span>
             </div>
         </div>
     </div>
@@ -511,16 +593,14 @@
                 <tr style="background:#374151;color:#fff;font-weight:600">
                     <td style="position:sticky;left:0;background:#374151;z-index:1;padding:7px 10px">
                         Net Harian
-                        <div style="font-size:9px;font-weight:400;color:#9ca3af">selisih hari ini saja</div>
+                        <div style="font-size:9px;font-weight:400;color:#9ca3af">penjualan − pengeluaran</div>
                     </td>
                     @for($day = 1; $day <= $daysInMonth; $day++)
                     @php
-                        $inc  = ($salesByDay[$day] ?? 0) + ($day === 1 ? $openingCash : 0);
-                        $out  = ($dayTotals[$day] ?? 0) + ($depositsByDay[$day]['total'] ?? 0) + ($depositsByDay[$day]['admin'] ?? 0);
+                        $inc  = ($salesByDay[$day] ?? 0);
+                        $out  = ($dayTotals[$day] ?? 0);
                         $net2 = $inc - $out;
-                        $hasD = ($salesByDay[$day] ?? 0) > 0 || ($dayTotals[$day] ?? 0) > 0
-                            || ($depositsByDay[$day]['total'] ?? 0) > 0
-                            || ($day === 1 && $openingCash > 0);
+                        $hasD = ($salesByDay[$day] ?? 0) > 0 || ($dayTotals[$day] ?? 0) > 0;
                     @endphp
                     <td style="text-align:center;padding:6px 2px;color:{{ $net2 > 0 ? '#86efac' : ($net2 < 0 ? '#fca5a5' : '#9ca3af') }}">
                         {{ $hasD ? number_format($net2/1000).'k' : '—' }}
@@ -624,8 +704,6 @@
 </div>
 
 </div>{{-- end x-data --}}
-
-@endsection
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -1069,3 +1147,47 @@
 })();
 </script>
 @endpush
+
+{{-- ═══════════════════════════════════════════════════════
+     TABEL HISTORY MARGIN BERSIH PER BULAN
+     ===================================================== --}}
+<div class="s-card" style="margin-top:10px">
+    <div class="s-card-header">📅 History Margin Bersih per Bulan</div>
+    <div class="scroll-x">
+        <table class="mob-table">
+            <thead>
+                <tr>
+                    <th>Bulan</th>
+                    <th class="r">Total Tabung</th>
+                    <th class="r">Margin Kotor</th>
+                    <th class="r">Pengeluaran</th>
+                    <th class="r">Admin TF</th>
+                    <th class="r" style="background:#d1fae5;">Margin Bersih</th>
+                    <th class="r">Rasio Ops</th>
+                </tr>
+            </thead>
+            <tbody>
+                @php
+                    // Ambil data dari periode-periode sebelumnya via route atau scope
+                    // Untuk sekarang tampilkan hanya periode ini + placeholder histori
+                @endphp
+                <tr style="background:linear-gradient(135deg,#ecfdf5,#d1fae5)">
+                    <td class="bold">{{ $period->label }}</td>
+                    <td class="r">{{ number_format($totalTabungAktual) }}</td>
+                    <td class="r" style="color:#059669;font-weight:600;">Rp {{ number_format($totalMargin) }}</td>
+                    <td class="r" style="color:#dc2626;">Rp {{ number_format($totalExpense) }}</td>
+                    <td class="r" style="color:#6d28d9;">Rp {{ number_format($totalAdminFees) }}</td>
+                    <td class="r bold" style="color:{{ ($totalMargin - $totalExpense - $totalAdminFees) >= 0 ? '#059669' : '#dc2626' }};">
+                        Rp {{ number_format($totalMargin - $totalExpense - $totalAdminFees) }}
+                    </td>
+                    <td class="r">{{ $summary['rasioOperasional'] }}%</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div style="padding:8px 12px;font-size:10px;color:var(--text3);border-top:0.5px solid var(--border);margin-top:8px">
+        Margin Bersih = Margin Kotor − Pengeluaran Operasional − Admin TF
+    </div>
+</div>
+
+@endsection

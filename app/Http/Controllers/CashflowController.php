@@ -304,7 +304,6 @@ class CashflowController extends Controller
     private function getDistribAggregate(Period $period): array
     {
         $row = Distribution::where('period_id', $period->id)
-            ->where('paid_amount', '>', 0)
             ->selectRaw('SUM(qty) as total_qty, COUNT(DISTINCT DAY(dist_date)) as active_days')
             ->first();
 
@@ -364,8 +363,8 @@ class CashflowController extends Controller
             ->filter(fn($d) => ($depositsByDay[$d]['total'] ?? 0) > 0)
             ->map(fn($d) => $dailyBankBalance[$d])->avg() ?? 0;
 
-        // Rasio
-        $rasioOperasional = $totalMargin > 0 ? $totalExpense / $totalMargin * 100 : 0;
+        // Rasio operasional: expense ÷ margin kotor (0-100%, >100% berarti rugi operasional)
+        $rasioOperasional = round($totalMargin > 0 ? $totalExpense / $totalMargin * 100 : 0, 1);
         $rasioGross       = $totalAvailable > 0 ? $totalKasKeluar / $totalAvailable * 100 : 0;
         return [
             'totalAvailable'    => $totalAvailable,

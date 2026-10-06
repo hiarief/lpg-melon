@@ -6,9 +6,9 @@
 {{-- @param $ideal     string   teks ideal --}}
 @php
     $isWarn  = $value > $threshold;
-    $barBg   = $isWarn ? ($threshold === 35 ? '#f59e0b' : '#ef4444') : 'var(--melon)';
-    $valCol  = $isWarn ? ($threshold === 35 ? '#b45309' : '#dc2626') : 'var(--melon-dark)';
-    $infoTxt = $isWarn ? ($threshold === 35 ? '⚠ perlu efisiensi' : '⚠ perhatian') : '✓ sehat';
+    $barBg   = $isWarn ? '#ef4444' : 'var(--melon)';
+    $valCol  = $isWarn ? '#dc2626' : 'var(--melon-dark)';
+    $infoTxt = $isWarn ? '⚠ perhatian' : '✓ sehat';
 @endphp
 <div class="card" style="padding:10px 12px;{{ $isWarn && $threshold === 80 ? 'border-color:#fca5a5' : '' }}">
     <div style="font-size:10px;color:var(--text3)">

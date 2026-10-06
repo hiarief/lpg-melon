@@ -16,7 +16,7 @@
 
         <div style="background:#fef3c7;border:0.5px solid #fde68a;border-radius:6px;padding:7px 10px;font-size:10px;color:#92400e;margin-top:4px">
             ℹ️ <strong>Semua prediksi berbasis margin bersih</strong> (penjualan − HPP Rp 16.000/tabung).
-            Rasio operasional ideal &lt;35% dari margin.
+            Rasio operasional ideal &lt;100% (ops &lt; margin).
         </div>
 
         {{-- Tab switcher --}}
@@ -59,20 +59,32 @@
 
         {{-- Engine Prediksi --}}
         <div style="background:var(--surface2);border:0.5px solid var(--border);border-radius:8px;padding:10px 12px">
-            <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">⚙ Engine Prediksi — Transparansi Metode</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                @foreach([
-                    ['Rate Margin WMA',    'Rp '.number_format(round($pred['marginRateWma'])),    '5 hari terakhir ×2 bobot',      'var(--melon-dark)'],
-                    ['Rate Margin Simpel', 'Rp '.number_format(round($pred['marginRateSimple'])), 'total margin ÷ hari aktif',     'var(--text2)'],
-                    ['Rate Final (60/40)', 'Rp '.number_format(round($pred['marginRate'])),       'WMA×0.6 + simpel×0.4',         '#1d4ed8'],
-                    ['Faktor Konservatif', '×'.number_format($pred['conserv'], 2),                'basis 0.88 + tren adj',         '#b45309'],
-                ] as [$lbl, $val, $note, $col])
+            <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">💵 Breakdown Margin Kotor Rp 255,000</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
                 <div>
-                    <div style="font-size:10px;color:var(--text3)">{{ $lbl }}</div>
-                    <div style="font-size:13px;font-weight:600;color:{{ $col }}">{{ $val }}</div>
-                    <div style="font-size:10px;color:var(--text3)">{{ $note }}</div>
+                    <div style="font-size:10px;color:var(--text3)">Total Penjualan (paid_amount)</div>
+                    <div style="font-size:16px;font-weight:700;color:#059669">Rp 1.951.000</div>
+                    <div style="font-size:9px;color:var(--text3)">Σ Distributions.paid_amount</div>
                 </div>
-                @endforeach
+                <div>
+                    <div style="font-size:10px;color:var(--text3)">Avg paid/tabung</div>
+                    <div style="font-size:16px;font-weight:700;color:var(--text2)">Rp {{ number_format(round($totalIncome / max(1,$totalTabungAktual))) }}</div>
+                    <div style="font-size:9px;color:var(--text3)">{{ number_format($totalIncome) }} ÷ {{ $totalTabungAktual }} tab</div>
+                </div>
+                <div>
+                    <div style="font-size:10px;color:var(--text3)">HPP per Tabung</div>
+                    <div style="font-size:16px;font-weight:700;color:#dc2626">Rp 16.000</div>
+                    <div style="font-size:9px;color:var(--text3)">konstanta</div>
+                </div>
+                <div>
+                    <div style="font-size:10px;color:var(--text3)">Margin per Tabung</div>
+                    <div style="font-size:16px;font-weight:700;color:#059669">Rp {{ number_format(round($totalIncome / max(1,$totalTabungAktual)) - 16000) }}</div>
+                    <div style="font-size:9px;color:var(--text3)">Jual − HPP</div>
+                </div>
+            </div>
+            <div style="margin-top:8px;padding-top:8px;border-top:0.5px dashed #86efac;display:flex;justify-content:space-between;font-size:12px">
+                <span>Margin Kotor = Σ(qty × (price − HPP))</span>
+                <span class="r" style="font-weight:700;color:#059669">Rp {{ number_format($totalMargin) }}</span>
             </div>
         </div>
 
@@ -213,18 +225,18 @@
             </div>
             <div class="card" style="padding:10px 12px">
                 <div style="font-size:10px;color:var(--text3)">Proyeksi Rasio Ops / Margin <span style="font-size:9px;font-style:italic">(akhir bulan)</span></div>
-                <div style="font-size:16px;font-weight:600;color:{{ $pred['predRasio'] > 35 ? '#b45309' : 'var(--melon-dark)' }};margin-top:2px">
+                <div style="font-size:16px;font-weight:600;color:{{ $pred['predRasio'] > 100 ? '#b45309' : 'var(--melon-dark)' }};margin-top:2px">
                     {{ number_format($pred['predRasio'], 1) }}%
                 </div>
                 <div style="height:4px;background:#f0f0f0;border-radius:2px;overflow:hidden;margin:4px 0">
-                    <div style="height:100%;width:{{ min($pred['predRasio'], 100) }}%;background:{{ $pred['predRasio'] > 35 ? '#f59e0b' : 'var(--melon)' }};border-radius:2px"></div>
+                    <div style="height:100%;width:{{ min($pred['predRasio'], 100) }}%;background:{{ $pred['predRasio'] > 100 ? '#f59e0b' : 'var(--melon)' }};border-radius:2px"></div>
                 </div>
-                <div style="font-size:10px;color:var(--text3)">biaya ops ÷ margin bersih · ideal &lt;35%</div>
-                <div style="font-size:10px;color:{{ $pred['predRasio'] > 35 ? '#b45309' : 'var(--melon-dark)' }};font-weight:600;margin-top:2px">
-                    {{ $pred['predRasio'] > 35 ? '⚠ perlu efisiensi' : '✓ sehat' }}
+                <div style="font-size:10px;color:var(--text3)">biaya ops ÷ margin kotor · ideal &lt;100%</div>
+                <div style="font-size:10px;color:{{ $pred['predRasio'] > 100 ? '#b45309' : 'var(--melon-dark)' }};font-weight:600;margin-top:2px">
+                    {{ $pred['predRasio'] > 100 ? '⚠ perlu efisiensi' : '✓ sehat' }}
                 </div>
                 <div style="font-size:10px;color:var(--text3);margin-top:4px;border-top:0.5px solid var(--border);padding-top:4px">
-                    Aktual: <strong style="color:{{ $pred['rasioAktual'] > 35 ? '#b45309' : 'var(--melon-dark)' }}">{{ number_format($pred['rasioAktual'], 1) }}%</strong>
+                    Aktual: <strong style="color:{{ $pred['rasioAktual'] > 100 ? '#b45309' : 'var(--melon-dark)' }}">{{ number_format($pred['rasioAktual'], 1) }}%</strong>
                 </div>
             </div>
         </div>

@@ -324,6 +324,14 @@
             }
         }">
 
+    @php
+        // Kelompok DO belum lunas (sudah diurutkan controller: prev → CO → bulan ini)
+        $carryoverDOs  = $allUnpaidDOs->filter(fn($d) => str_contains($d->notes ?? '', 'Carry-over'));
+        $unpaidDOs     = $allUnpaidDOs->reject(fn($d) => str_contains($d->notes ?? '', 'Carry-over'))
+                                      ->where('period_id', $period->id);
+        $prevUnpaidDOs = $allUnpaidDOs->where('period_id', '<', $period->id);
+    @endphp
+
         @if($period->status === 'open')
         <div class="s-card">
             <div class="s-card-header">+ Transfer Rekening Penampung → Rekening Utama</div>
@@ -333,12 +341,19 @@
                     <input type="hidden" name="period_id" value="{{ $period->id }}">
                     <input type="hidden" name="alloc_mode" value="manual">
 
-                    {{-- Tabel piutang DO --}}
+                    {{-- Tabel piutang DO (3 kelompok jelas, tanpa double-count) --}}
                     @if($allUnpaidDOs->count() > 0)
                     <div style="margin-bottom:12px;border-radius:8px;overflow:hidden;border:0.5px solid #fca5a5">
-                        <div style="background:#dc2626;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
+                        <div style="background:#dc2626;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
                             <span style="font-size:11px;font-weight:600;color:#fff">⚠ DO Belum Lunas</span>
-                            <span style="font-size:11px;font-weight:600;color:#fff">Total: Rp {{ number_format($totalPiutangDO) }}</span>
+                            <span style="font-size:11px;font-weight:600;color:#fff">
+                                Total: Rp {{ number_format($totalPiutangDO) }}
+                                @if($prevUnpaidDOs->count() > 0)
+                                · <span style="opacity:.75">Bawaan: Rp {{ number_format($prevUnpaidDOs->sum(fn($u) => $u->remainingAmount())) }}</span>
+                                @endif
+                                · <span style="opacity:.75">Carry-over: Rp {{ number_format($allUnpaidDOs->filter(fn($u) => str_contains($u->notes ?? '', 'Carry-over'))->sum(fn($u) => $u->remainingAmount())) }}</span>
+                                · <span style="opacity:.75">Bulan ini: Rp {{ number_format($unpaidDOs->sum(fn($u) => $u->remainingAmount())) }}</span>
+                            </span>
                         </div>
                         <div class="scroll-x">
                             <table class="mob-table">
@@ -347,33 +362,53 @@
                                         <th>Pangkalan</th><th>Tgl DO</th>
                                         <th class="r">Qty</th><th class="r">Total DO</th>
                                         <th class="r">Terbayar</th><th class="r" style="color:#dc2626">Sisa</th>
-                                        <th>Status</th>
+                                        <th>Kategori</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($allUnpaidDOs as $udo)
-                                    @php $isCarryover = str_contains($udo->notes ?? '', 'Carry-over'); @endphp
-                                    <tr style="{{ $isCarryover ? 'background:#fff7ed' : '' }}">
+                                    {{-- 1. Piutang bawaan periode lalu (belum di-carry-over) --}}
+                                    @foreach($prevUnpaidDOs as $udo)
+                                    <tr style="background:#f8f8f8">
+                                        <td class="bold">{{ $udo->outlet->name }}</td>
+                                        <td style="color:var(--text3)">{{ $udo->do_date->format('d/m/Y') }}</td>
+                                        <td class="r">{{ number_format($udo->qty) }}</td>
+                                        <td class="r">Rp {{ number_format($udo->qty * $udo->price_per_unit) }}</td>
+                                        <td class="r" style="color:var(--melon-dark)">Rp {{ number_format($udo->paid_amount) }}</td>
+                                        <td class="r bold" style="color:#dc2626">Rp {{ number_format($udo->remainingAmount()) }}</td>
+                                        <td><span class="badge badge-muted" style="font-size:9px">↩ Bawaan</span></td>
+                                    </tr>
+                                    @endforeach
+
+                                    {{-- 2. Carry-over (wakil sisa piutang periode lalu) --}}
+                                    @foreach($carryoverDOs as $udo)
+                                    <tr style="background:#fff7ed">
                                         <td class="bold">
                                             {{ $udo->outlet->name }}
-                                            @if($isCarryover)
-                                                <span style="font-size:9px;color:#c2410c">↩carry</span>
-                                            @endif
+                                            <span style="font-size:9px;color:#c2410c">↩carry</span>
                                         </td>
                                         <td style="color:var(--text3)">{{ $udo->do_date->format('d/m/Y') }}</td>
                                         <td class="r">{{ number_format($udo->qty) }}</td>
                                         <td class="r">Rp {{ number_format($udo->qty * $udo->price_per_unit) }}</td>
                                         <td class="r" style="color:var(--melon-dark)">Rp {{ number_format($udo->paid_amount) }}</td>
                                         <td class="r bold" style="color:#dc2626">Rp {{ number_format($udo->remainingAmount()) }}</td>
-                                        <td>
-                                            @if($udo->payment_status === 'partial')
-                                                <span class="badge badge-orange">Sebagian</span>
-                                            @else
-                                                <span class="badge badge-red">Belum</span>
-                                            @endif
-                                        </td>
+                                        <td><span class="badge badge-orange" style="font-size:9px">↩ CO</span></td>
                                     </tr>
                                     @endforeach
+
+                                    {{-- 3. DO reguler bulan ini --}}
+                                    @foreach($unpaidDOs as $udo)
+                                    <tr>
+                                        <td class="bold">{{ $udo->outlet->name }}</td>
+                                        <td style="color:var(--text3)">{{ $udo->do_date->format('d/m/Y') }}</td>
+                                        <td class="r">{{ number_format($udo->qty) }}</td>
+                                        <td class="r">Rp {{ number_format($udo->qty * $udo->price_per_unit) }}</td>
+                                        <td class="r" style="color:var(--melon-dark)">Rp {{ number_format($udo->paid_amount) }}</td>
+                                        <td class="r bold" style="color:#dc2626">Rp {{ number_format($udo->remainingAmount()) }}</td>
+                                        <td><span class="badge badge-blue" style="font-size:9px">BLN Ini</span></td>
+                                    </tr>
+                                    @endforeach
+
+                                    {{-- Grand total --}}
                                     <tr class="total-row">
                                         <td colspan="2" class="bold">TOTAL</td>
                                         <td class="r bold">{{ number_format($allUnpaidDOs->sum('qty')) }}</td>

@@ -218,26 +218,50 @@ class TransferController extends Controller
 
     /**
      * Kembalikan [unpaidDOs, prevUnpaidDOs, allUnpaidDOs].
-     * allUnpaidDOs sudah diurutkan: prev period → carry-over → bulan ini.
+     * allUnpaidDOs sudah diurutkan: prev period (belum di-carry-over) →
+     * carry-over → bulan ini. Tidak ada double-count piutang.
      */
     private function resolveUnpaidDOs(Period $period): array
     {
+        // DO reguler bulan ini (bukan carry-over)
         $unpaidDOs = DeliveryOrder::with('outlet')
             ->where('period_id', $period->id)
-            ->whereIn('payment_status', ['unpaid', 'partial'])
-            ->orderByRaw("CASE WHEN notes LIKE '%Carry-over%' THEN 0 ELSE 1 END")
-            ->orderBy('do_date')
-            ->get();
-
-        $prevUnpaidDOs = DeliveryOrder::with(['outlet', 'period'])
-            ->whereHas('period', fn($q) => $q->where('id', '<', $period->id))
+            ->where(fn ($q) => $q->whereNull('notes')->orWhere('notes', 'not like', '%Carry-over%'))
             ->whereIn('payment_status', ['unpaid', 'partial'])
             ->orderBy('do_date')
             ->get();
 
+        // DO carry-over di periode ini = wakil sisa piutang periode lalu
+        $carryoverDOs = DeliveryOrder::with(['outlet', 'period'])
+            ->where('period_id', $period->id)
+            ->where('notes', 'like', '%Carry-over%')
+            ->whereIn('payment_status', ['unpaid', 'partial'])
+            ->orderBy('do_date')
+            ->get();
+
+        // Outlet yang piutangnya sudah diwakili oleh carry-over DO
+        $carriedOverOutletIds = $carryoverDOs->pluck('outlet_id')->unique();
+
+        // DO periode sebelumnya: hanya yang outlet-nya BELUM di-carry-over
+        [$prevMonth, $prevYear] = $period->month === 1
+            ? [12, $period->year - 1]
+            : [$period->month - 1, $period->year];
+        $prevPeriod = Period::where('year', $prevYear)->where('month', $prevMonth)->first();
+
+        $prevUnpaidDOs = collect();
+        if ($prevPeriod) {
+            $prevUnpaidDOs = DeliveryOrder::with(['outlet', 'period'])
+                ->where('period_id', $prevPeriod->id)
+                ->whereIn('payment_status', ['unpaid', 'partial'])
+                ->whereNotIn('outlet_id', $carriedOverOutletIds)
+                ->orderBy('do_date')
+                ->get();
+        }
+
+        // Gabungan: prev (belum di-carry-over) → carry-over → reguler bulan ini
         $allUnpaidDOs = $prevUnpaidDOs
-            ->concat($unpaidDOs->filter(fn($d) => str_contains($d->notes ?? '', 'Carry-over')))
-            ->concat($unpaidDOs->filter(fn($d) => ! str_contains($d->notes ?? '', 'Carry-over')));
+            ->concat($carryoverDOs)
+            ->concat($unpaidDOs);
 
         return [$unpaidDOs, $prevUnpaidDOs, $allUnpaidDOs];
     }
