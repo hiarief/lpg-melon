@@ -7,6 +7,134 @@
     .kpi-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    /* ── Tombol sel tanggal × pangkalan ───────────────────────────────── */
+    .day-cell { text-align: center; padding: 4px 2px; }
+
+    .do-cell-btn {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        min-width: 40px;
+        padding: 3px 5px;
+        border-radius: 7px;
+        cursor: pointer;
+        font-family: inherit;
+        line-height: 1.15;
+        background: var(--cb-bg);
+        border: 1px solid var(--cb-bd);
+        color: var(--cb-fg);
+        transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .do-cell-btn:hover  { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,.12); }
+    .do-cell-btn:active { transform: translateY(0); }
+    .do-cell-btn:focus-visible { outline: 2px solid var(--melon); outline-offset: 1px; }
+
+    .do-cell-qty     { font-size: 11px; font-weight: 700; }
+    .do-cell-info    { font-size: 8.5px; font-weight: 600; opacity: .9; white-space: nowrap; }
+    .do-cell-surplus { font-size: 7.5px; font-weight: 700; color: #4338CA; white-space: nowrap; }
+
+    /* ── Modal detail (di luar .s-card, jadi position:fixed aman) ─────── */
+    #doModal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+    }
+    #doModal.is-open { display: flex; }
+
+    .do-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(27, 40, 30, .48);
+        backdrop-filter: blur(3px);
+    }
+    .do-modal-panel {
+        position: relative;
+        background: var(--surface);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-lg);
+        width: 100%;
+        max-width: 600px;
+        max-height: 86vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .do-modal-head {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+    .do-modal-title { font-size: 15px; font-weight: 700; color: var(--text1); }
+    .do-modal-subrow { display: flex; align-items: center; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
+    .do-modal-badge {
+        font-size: 10px; font-weight: 700;
+        padding: 2px 9px; border-radius: 999px;
+        background: var(--surface2); color: var(--text3);
+    }
+    .do-modal-sub { font-size: 10px; color: var(--text3); }
+    .do-modal-x {
+        background: none; border: none; cursor: pointer;
+        font-size: 22px; line-height: 1; color: var(--text3);
+        padding: 0 4px; font-family: inherit;
+    }
+    .do-modal-x:hover { color: var(--text1); }
+    .do-modal-body {
+        padding: 14px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    /* Isi modal */
+    .dm-grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .dm-stat  { border-radius: 8px; padding: 9px 11px; }
+    .dm-stat-l { font-size: 9px; }
+    .dm-stat-v { font-size: 14px; font-weight: 700; }
+
+    .dm-sec-title { font-size: 11px; font-weight: 700; color: var(--text2); margin-bottom: 6px; }
+    .dm-card {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 9px 11px;
+        background: var(--surface);
+    }
+    .dm-row { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+    .dm-name { font-size: 12px; font-weight: 700; color: var(--text1); }
+    .dm-sub  { font-size: 10px; color: var(--text3); }
+    .dm-pill {
+        font-size: 9px; font-weight: 700;
+        padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+    }
+    .dm-line { display: flex; gap: 12px; margin-top: 6px; font-size: 10px; flex-wrap: wrap; }
+    .dm-pay  { margin-top: 7px; padding-top: 7px; border-top: 1px dashed var(--border); }
+    .dm-pay-t { font-size: 9px; font-weight: 700; color: var(--text3); margin-bottom: 3px; }
+    .dm-pay-r { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; color: var(--text2); }
+
+    .dm-tf {
+        border: 1px solid #C7D2FE;
+        border-radius: 8px;
+        padding: 9px 11px;
+        background: #F5F7FF;
+    }
+    .dm-note {
+        border-radius: 8px;
+        padding: 9px 11px;
+        font-size: 10px;
+        line-height: 1.6;
+    }
+    .dm-empty { font-size: 11px; color: var(--text3); font-style: italic; }
+    .dm-stack { display: flex; flex-direction: column; gap: 7px; }
 </style>
 @endpush
 
@@ -173,10 +301,41 @@
 
 
 {{-- ══════════════════════════════════════════════════════════════
-     REKAP DO PER TANGGAL
+     REKAP DO PER TANGGAL — klik nilai DO per pangkalan untuk rincian
 ══════════════════════════════════════════════════════════════ --}}
+@php
+    $cellMeta = [
+        'lunas'    => ['bg' => '#E1F5EE', 'bd' => '#1D9E75', 'fg' => '#0F6E56', 'label' => 'Lunas'],
+        'sebagian' => ['bg' => '#FAEEDA', 'bd' => '#EF9F27', 'fg' => '#854F0B', 'label' => 'Sebagian'],
+        'belum'    => ['bg' => '#FCEBEB', 'bd' => '#E24B4A', 'fg' => '#A32D2D', 'label' => 'Belum bayar'],
+        'kosong'   => ['bg' => '#F7F9F7', 'bd' => '#D2D9D3', 'fg' => '#6F7A71', 'label' => '—'],
+    ];
+@endphp
+
 <div class="s-card">
-    <div class="s-card-header">📅 Rekap DO per Tanggal</div>
+    <div class="s-card-header" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+        <span>📅 Rekap DO per Tanggal</span>
+        <span style="margin-left:auto;font-size:10px;font-weight:400;color:var(--text3);font-style:italic">
+            klik angka untuk rincian pembayaran
+        </span>
+    </div>
+
+    {{-- Legend warna --}}
+    <div style="display:flex;flex-wrap:wrap;gap:14px;padding:0 18px 10px;font-size:10px;color:var(--text3)">
+        @foreach([
+            ['#E1F5EE', '#1D9E75', 'Lunas'],
+            ['#FAEEDA', '#EF9F27', 'Sebagian'],
+            ['#FCEBEB', '#E24B4A', 'Belum bayar'],
+        ] as [$bg, $bd, $lbl])
+            <span style="display:flex;align-items:center;gap:5px">
+                <span style="width:12px;height:12px;border-radius:3px;background:{{ $bg }};border:1px solid {{ $bd }}"></span> {{ $lbl }}
+            </span>
+        @endforeach
+        <span style="display:flex;align-items:center;gap:5px">
+            <span style="font-weight:700;color:#4338CA">+</span> ada surplus transfer
+        </span>
+    </div>
+
     <div class="scroll-x">
         <table class="mob-table">
             <thead>
@@ -202,10 +361,26 @@
                     @for($day = 1; $day <= $daysInMonth; $day++)
                     @php
                         $dateStr = sprintf('%04d-%02d-%02d', $period->year, $period->month, $day);
-                        $dayQty  = $outletDOs->filter(fn ($d) => $d->do_date->format('Y-m-d') === $dateStr)->sum('qty');
+                        $cellKey = $dateStr . '|' . $outlet->id;
+                        $det     = $doDayDetail[$cellKey] ?? null;
+                        $meta    = $det ? $cellMeta[$det['status']] : null;
                     @endphp
-                    <td class="day-cell {{ $dayQty > 0 ? 'day-cell-active' : 'day-cell-empty' }}">
-                        {{ $dayQty ?: '-' }}
+                    <td class="day-cell">
+                        @if($det)
+                            <button type="button"
+                                class="do-cell-btn"
+                                data-do-key="{{ $cellKey }}"
+                                title="{{ $det['dateFmt'] }} — {{ $outlet->name }} · {{ $meta['label'] }}"
+                                style="--cb-bg:{{ $meta['bg'] }};--cb-bd:{{ $meta['bd'] }};--cb-fg:{{ $meta['fg'] }}">
+                                <span class="do-cell-qty">{{ $det['qty'] }}</span>
+                                <span class="do-cell-info">{{ $det['sisa'] > 0 ? number_format($det['sisa']/1000).'k' : '✓' }}</span>
+                                @if($det['surplus'] > 0)
+                                    <span class="do-cell-surplus">+{{ number_format($det['surplus']/1000) }}k</span>
+                                @endif
+                            </button>
+                        @else
+                            <span style="color:var(--gray-300)">-</span>
+                        @endif
                     </td>
                     @endfor
 
@@ -236,7 +411,27 @@
     </div>
 </div>
 
+{{-- ══════════════════════════════════════════════════════════════
+     MODAL DETAIL — SENGAJA DI LUAR .s-card
+     (.s-card punya overflow:hidden yang akan memotong position:fixed)
+══════════════════════════════════════════════════════════════ --}}
+<div id="doModal" role="dialog" aria-modal="true" aria-labelledby="doModalTitle">
+    <div class="do-modal-backdrop" data-modal-close></div>
 
+    <div class="do-modal-panel">
+        <div class="do-modal-head">
+            <div style="flex:1;min-width:0">
+                <div id="doModalTitle" class="do-modal-title"></div>
+                <div class="do-modal-subrow">
+                    <span id="doModalBadge" class="do-modal-badge"></span>
+                    <span id="doModalSub" class="do-modal-sub"></span>
+                </div>
+            </div>
+            <button type="button" class="do-modal-x" data-modal-close aria-label="Tutup">&times;</button>
+        </div>
+        <div id="doModalBody" class="do-modal-body"></div>
+    </div>
+</div>
 {{-- ══════════════════════════════════════════════════════════════
      KPI CARDS
 ══════════════════════════════════════════════════════════════ --}}
@@ -804,6 +999,201 @@
 @push('scripts')
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
     <script>
+        // ── Modal detail per tanggal DO (vanilla JS) ─────────────────────────────
+        (function () {
+            const DATA = @json($doDayDetail);
+
+            const DAY_META = {
+                'lunas':         { bg:'#E1F5EE', bd:'#1D9E75', fg:'#0F6E56', label:'Lunas'          },
+                'sebagian':      { bg:'#FAEEDA', bd:'#EF9F27', fg:'#854F0B', label:'Sebagian'       },
+                'belum':         { bg:'#FCEBEB', bd:'#E24B4A', fg:'#A32D2D', label:'Belum bayar'    },
+                'transfer-saja': { bg:'#EEF2FF', bd:'#6366F1', fg:'#3730A3', label:'Transfer saja'  },
+                'kosong':        { bg:'#F7F9F7', bd:'#D2D9D3', fg:'#6F7A71', label:'—'              },
+            };
+            const DO_STATUS = {
+                'paid':    { bg:'#E1F5EE', bd:'#1D9E75', fg:'#0F6E56', label:'Lunas'    },
+                'partial': { bg:'#FAEEDA', bd:'#EF9F27', fg:'#854F0B', label:'Sebagian' },
+                'unpaid':  { bg:'#FCEBEB', bd:'#E24B4A', fg:'#A32D2D', label:'Belum'    },
+            };
+
+            const esc = s => String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+            const rp = v => 'Rp ' + (Number(v) || 0).toLocaleString('id-ID');
+            const rpK = v => (Number(v) || 0).toLocaleString('id-ID') + 'k';
+
+            const modal = document.getElementById('doModal');
+            const titleEl = document.getElementById('doModalTitle');
+            const badgeEl = document.getElementById('doModalBadge');
+            const subEl   = document.getElementById('doModalSub');
+            const bodyEl  = document.getElementById('doModalBody');
+            if (!modal) return;
+
+            function statCard(label, value, bg, fg) {
+                return '<div class="dm-stat" style="background:' + bg + '">'
+                     +   '<div class="dm-stat-l" style="color:' + fg + '">' + esc(label) + '</div>'
+                     +   '<div class="dm-stat-v" style="color:' + fg + '">' + esc(value) + '</div>'
+                     + '</div>';
+            }
+
+            function render(key) {
+                const d = DATA[key];
+                if (!d) return;
+                const m = DAY_META[d.status] || DAY_META.kosong;
+
+                titleEl.textContent = d.outlet + ' — ' + d.dateFmt;
+                badgeEl.textContent = m.label;
+                badgeEl.style.background = m.bg;
+                badgeEl.style.border = '1px solid ' + m.bd;
+                badgeEl.style.color = m.fg;
+                subEl.textContent = d.qty + ' tabung · ' + d.dos.length + ' DO';
+
+                let html = '';
+
+                // ── Ringkasan angka ──
+                html += '<div class="dm-grid2">';
+                html += statCard('Nilai DO', rp(d.nilai), 'var(--surface2)', 'var(--text1)');
+                html += statCard('Sudah dibayar', rp(d.bayar), '#E1F5EE', '#0F6E56');
+                html += d.sisa > 0
+                    ? statCard('Harus dibayar (sisa)', rp(d.sisa), '#FCEBEB', '#A32D2D')
+                    : statCard('Harus dibayar (sisa)', '✓ Lunas', '#E1F5EE', '#0F6E56');
+                html += d.surplus > 0
+                    ? statCard('Surplus transfer', rp(d.surplus), '#EEF2FF', '#4338CA')
+                    : statCard('Surplus transfer', '—', 'var(--surface2)', 'var(--text3)');
+                html += '</div>';
+
+                // ── DO tanggal ini ──
+                html += '<div><div class="dm-sec-title">📦 DO Pangkalan Ini</div>';
+                if (d.dos.length === 0) {
+                    html += '<div class="dm-empty">Tidak ada DO pada tanggal ini.</div>';
+                } else {
+                    html += '<div class="dm-stack">';
+                    d.dos.forEach(function (r) {
+                        const st = DO_STATUS[r.status] || DO_STATUS.unpaid;
+                        html += '<div class="dm-card">'
+                             +   '<div class="dm-row">'
+                             +     '<div style="min-width:0">'
+                             +       '<div class="dm-name">DO ' + esc(r.qty) + ' tab</div>'
+                             +       '<div class="dm-sub">' + esc(r.qty) + ' tab × ' + esc(rp(r.price)) + ' = ' + esc(rp(r.total)) + '</div>'
+                             +     '</div>'
+                             +     '<span class="dm-pill" style="background:' + st.bg + ';border:1px solid ' + st.bd + ';color:' + st.fg + '">' + esc(st.label) + '</span>'
+                             +   '</div>'
+                             +   '<div class="dm-line">'
+                             +     '<span style="color:#0F6E56">Dibayar: <strong>' + esc(rp(r.paid)) + '</strong></span>'
+                             +     '<span style="color:' + (r.sisa > 0 ? '#A32D2D' : '#0F6E56') + '">Sisa: <strong>' + esc(r.sisa > 0 ? rp(r.sisa) : '✓ Lunas') + '</strong></span>'
+                             +   '</div>';
+
+                        if (r.payments.length > 0) {
+                            html += '<div class="dm-pay">'
+                                 +  '<div class="dm-pay-t">Dibayar via transfer:</div>';
+                            r.payments.forEach(function (pp) {
+                                html += '<div class="dm-pay-r">'
+                                     +    '<span>TF #' + esc(pp.id) + ' · ' + esc(pp.dateFmt) + '</span>'
+                                     +    '<span style="font-weight:600">' + esc(rp(pp.alloc)) + '</span>'
+                                     +  '</div>';
+                            });
+                            html += '</div>';
+                        } else if (r.sisa > 0) {
+                            html += '<div class="dm-pay" style="font-size:10px;color:#A32D2D">'
+                                 +  '⚠ Belum ada transfer yang melunasi DO ini</div>';
+                        }
+
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                }
+                html += '</div>';
+
+                // ── Transfer yang melunasi DO pada sel ini ──
+                var tfList = [];
+                d.dos.forEach(function (x) {
+                    x.payments.forEach(function (pp) { tfList.push(pp); });
+                });
+
+                if (tfList.length > 0) {
+                    html += '<div><div class="dm-sec-title">🏦 Transfer yang Melunasi</div>';
+                    html += '<div class="dm-stack">';
+                    tfList.forEach(function (t) {
+                        html += '<div class="dm-tf">'
+                             +   '<div class="dm-row">'
+                             +     '<div>'
+                             +       '<div style="font-size:11px;font-weight:700;color:#3730A3">Transfer #' + esc(t.id) + '</div>'
+                             +       '<div class="dm-sub">transfer ' + esc(t.dateFmt) + ' · dialokasikan ke DO ini: ' + esc(rp(t.alloc)) + '</div>'
+                             +     '</div>'
+                             +     '<div style="text-align:right">'
+                             +       (t.surplus > 0
+                                        ? '<div style="font-size:9px;font-weight:700;color:#4338CA">+ surplus ' + esc(rp(t.surplus)) + '</div>'
+                                        : '')
+                             +     '</div>'
+                             +   '</div>'
+                             + '</div>';
+                    });
+                    html += '</div></div>';
+                }
+
+                // ── Catatan penutup ──
+                if (d.sisa > 0) {
+                    const n = d.dos.filter(function (x) { return x.sisa > 0; }).length;
+                    html += '<div class="dm-note" style="background:#FCEBEB;border:1px solid #F2CBC7;color:#A32D2D">'
+                         +   '<strong>Harus dibayar:</strong> ' + esc(rp(d.sisa))
+                         +   ' untuk ' + esc(n) + ' DO yang belum lunas</div>';
+                }
+                if (d.surplus > 0) {
+                    html += '<div class="dm-note" style="background:#EEF2FF;border:1px solid #C7D2FE;color:#3730A3">'
+                         +   '<strong>Surplus:</strong> ' + esc(rp(d.surplus))
+                         +   ' masuk tabungan (tidak dihitung pengeluaran)</div>';
+                }
+
+                bodyEl.innerHTML = html;
+            }
+
+            let openedAt = 0;
+
+            function openModal(key) {
+                if (!DATA[key]) return;
+                render(key);
+                modal.classList.add('is-open');
+                document.body.style.overflow = 'hidden';
+                openedAt = Date.now();
+            }
+            function closeModal(force) {
+                // Guard: abaikan close dalam 300ms pertama — mencegah klik ganda
+                // yang tidak sengaja mengenai backdrop sesaat setelah modal dibuka
+                if (!force && Date.now() - openedAt < 300) return;
+                modal.classList.remove('is-open');
+                document.body.style.overflow = '';
+            }
+
+            // Klik tombol tanggal — listener langsung per tombol (paling andal)
+            document.querySelectorAll('[data-do-key]').forEach(function (b) {
+                b.addEventListener('click', function (ev) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    openModal(b.getAttribute('data-do-key'));
+                });
+            });
+
+            // Tutup: backdrop, tombol ×, dan Escape
+            modal.querySelectorAll('[data-modal-close]').forEach(function (el) {
+                el.addEventListener('click', function (ev) {
+                    ev.preventDefault();
+                    closeModal();
+                });
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal(true);
+            });
+
+            // Deep-link: ?do_day=YYYY-MM-DD langsung membuka modal
+            const qs = new URLSearchParams(location.search).get('do_key');
+            if (qs && DATA[qs]) { openModal(qs); }
+
+            // Ekspos untuk keperluan uji
+            window.doDayDetailModal = { open: openModal, close: closeModal, data: DATA };
+        })();
+
+        // ── Chart DO ─────────────────────────────────────────────────────────────
         (function () {
             const GRAY = 'rgba(0,0,0,0.06)';
             const TICK  = { font: { size: 10 }, color: '#9CA3AF' };
