@@ -6,23 +6,48 @@
 @php
     $bestQty = $grand['bestQtyPeriod'];
 
+    // ── 3 baris × 4 cards ────────────────────────────────────────────────
+    // Baris 1: Volume & Penjualan
     $kpiRow1 = [
         ['label' => 'Total Tabung', 'value' => number_format($grand['allQty']), 'sub' => $rows->count().' periode', 'color' => 'var(--melon-dark)', 'accent' => 'green'],
         ['label' => 'Total Tagihan', 'value' => 'Rp '.number_format($grand['allVal']), 'sub' => 'avg Rp '.number_format($rows->count() ? $grand['allVal'] / $rows->count() : 0).'/bln', 'color' => '#1d4ed8', 'accent' => 'blue'],
         ['label' => 'Total Piutang', 'value' => $grand['piutang'] > 0 ? 'Rp '.number_format($grand['piutang']) : '✓ Lunas', 'sub' => 'akumulasi seluruh periode', 'color' => $grand['piutang'] > 0 ? '#dc2626' : 'var(--melon-dark)', 'accent' => $grand['piutang'] > 0 ? 'red' : 'green'],
         ['label' => 'Total Margin', 'value' => 'Rp '.number_format($grand['allMargin']), 'sub' => 'tagihan − HPP', 'color' => '#059669', 'accent' => 'green'],
-        ['label' => 'Periode Terbaik', 'value' => $bestQty['label'] ?? '-', 'sub' => number_format($bestQty['allQty'] ?? 0).' tab', 'color' => '#7c3aed', 'accent' => 'purple'],
     ];
+    // Baris 2: Profit & Kas
     $kpiRow2 = [
         ['label' => 'Profit Bersih', 'value' => 'Rp '.number_format($grand['profitBersih']), 'sub' => 'margin − ops − admin', 'color' => '#059669', 'accent' => 'green'],
         ['label' => 'Profit Kas', 'value' => 'Rp '.number_format($grand['profitKas']), 'sub' => 'netKas akhir − opening', 'color' => '#b45309', 'accent' => 'orange'],
         ['label' => 'Rekomendasi Ambil', 'value' => 'Rp '.number_format($grand['rekomendasiAmbil']), 'sub' => '70% profit kas (konservatif)', 'color' => '#6d28d9', 'accent' => 'purple'],
+        ['label' => 'Profit Bebas', 'value' => 'Rp '.number_format($grand['profitBebas']), 'sub' => 'profit − utang Agen', 'color' => $grand['profitBebas'] >= 0 ? '#059669' : '#dc2626', 'accent' => $grand['profitBebas'] >= 0 ? 'green' : 'red'],
+    ];
+    // Baris 3: Kekayaan & Status
+    $kpiRow3 = [
         ['label' => 'Uang Dipegang', 'value' => 'Rp '.number_format($grand['totalUangDipegangKini']), 'sub' => 'kas + bank + tabungan', 'color' => '#1d4ed8', 'accent' => 'blue'],
         ['label' => 'Total Kekayaan', 'value' => 'Rp '.number_format($grand['totalKekayaanKini']), 'sub' => '+ piutang + nilai stok', 'color' => '#7c3aed', 'accent' => 'purple'],
-        ['label' => 'Profit Bebas', 'value' => 'Rp '.number_format($grand['profitBebas']), 'sub' => 'profit − utang Agen', 'color' => $grand['profitBebas'] >= 0 ? '#059669' : '#dc2626', 'accent' => $grand['profitBebas'] >= 0 ? 'green' : 'red'],
+        ['label' => 'Periode Terbaik', 'value' => $bestQty['label'] ?? '-', 'sub' => number_format($bestQty['allQty'] ?? 0).' tab', 'color' => '#7c3aed', 'accent' => 'purple'],
         ['label' => 'Konsistensi', 'value' => $grand['adaAnomali'] ? '⚠ Selisih' : '✓ OK', 'sub' => 'cross-check antar modul', 'color' => $grand['adaAnomali'] ? '#dc2626' : 'var(--melon-dark)', 'accent' => $grand['adaAnomali'] ? 'red' : 'green'],
     ];
 @endphp
+
+@push('styles')
+<style>
+    /* KPI Compare — 4 kolom di desktop, responsif untuk mobile */
+    .kpi-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    @media (max-width: 768px) {
+        .kpi-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 480px) {
+        .kpi-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+@endpush
 
 <div class="cmp-section">
     <div class="page-header">
@@ -31,7 +56,7 @@
     </div>
 </div>
 
-{{-- KPI ROW 1 (5 cards) --}}
+{{-- KPI ROW 1: Volume & Penjualan (4 cards) --}}
 <div class="kpi-grid cmp-section">
     @foreach($kpiRow1 as $kpi)
     <div class="kpi-card" data-accent="{{ $kpi['accent'] }}">
@@ -42,12 +67,23 @@
     @endforeach
 </div>
 
-{{-- KPI ROW 2 (7 cards compact) --}}
+{{-- KPI ROW 2: Profit & Kas (4 cards) --}}
 <div class="kpi-grid cmp-section">
     @foreach($kpiRow2 as $kpi)
-    <div class="kpi-card" data-accent="{{ $kpi['accent'] }}" style="padding:10px 12px;">
+    <div class="kpi-card" data-accent="{{ $kpi['accent'] }}">
         <span class="kpi-label">{{ $kpi['label'] }}</span>
-        <span class="kpi-value" style="color:{{ $kpi['color'] }};font-size:clamp(14px,3vw,18px);">{{ $kpi['value'] }}</span>
+        <span class="kpi-value" style="color:{{ $kpi['color'] }};">{{ $kpi['value'] }}</span>
+        <span class="kpi-sub">{{ $kpi['sub'] }}</span>
+    </div>
+    @endforeach
+</div>
+
+{{-- KPI ROW 3: Kekayaan & Status (4 cards) --}}
+<div class="kpi-grid cmp-section">
+    @foreach($kpiRow3 as $kpi)
+    <div class="kpi-card" data-accent="{{ $kpi['accent'] }}">
+        <span class="kpi-label">{{ $kpi['label'] }}</span>
+        <span class="kpi-value" style="color:{{ $kpi['color'] }};">{{ $kpi['value'] }}</span>
         <span class="kpi-sub">{{ $kpi['sub'] }}</span>
     </div>
     @endforeach
@@ -361,5 +397,127 @@
     </div>
 </div>
 @endif
+
+@push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+    (function () {
+        const ctx = document.getElementById('cmpTrendChart');
+        if (!ctx) return;
+
+        const labels = @json($rows->pluck('label'));
+        const qty = @json($rows->pluck('allQty'));
+        const val = @json($rows->pluck('allVal'));
+        const paid = @json($rows->pluck('allPaid'));
+        const piutang = @json($rows->pluck('piutang'));
+        const rasioLunas = @json($rows->pluck('rasioLunas'));
+
+        const cs = getComputedStyle(document.documentElement);
+        const BLUE = '#2563eb';
+        const RED = '#dc2626';
+        const GREEN = '#059669';
+        const PURPLE = '#7c3aed';
+        const TICK = { font: { size: 10 }, color: '#9CA3AF' };
+
+        new Chart(ctx, {
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        type: 'bar',
+                        label: 'Tabung',
+                        data: qty,
+                        backgroundColor: BLUE + 'cc',
+                        borderRadius: 4,
+                        order: 3,
+                        yAxisID: 'y',
+                    },
+                    {
+                        type: 'line',
+                        label: 'Tagihan (Rp)',
+                        data: val,
+                        borderColor: GREEN,
+                        backgroundColor: 'transparent',
+                        pointBackgroundColor: GREEN,
+                        pointRadius: 4,
+                        tension: 0.3,
+                        borderWidth: 2,
+                        order: 1,
+                        yAxisID: 'y1',
+                    },
+                    {
+                        type: 'line',
+                        label: 'Piutang (Rp)',
+                        data: piutang,
+                        borderColor: RED,
+                        backgroundColor: 'transparent',
+                        pointBackgroundColor: RED,
+                        pointRadius: 4,
+                        tension: 0.3,
+                        borderWidth: 2,
+                        borderDash: [5, 3],
+                        order: 2,
+                        yAxisID: 'y1',
+                    },
+                    {
+                        type: 'line',
+                        label: 'Rasio Lunas (%)',
+                        data: rasioLunas,
+                        borderColor: PURPLE,
+                        backgroundColor: 'transparent',
+                        pointBackgroundColor: PURPLE,
+                        pointRadius: 4,
+                        tension: 0.3,
+                        borderWidth: 2,
+                        order: 0,
+                        yAxisID: 'y2',
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: true, position: 'bottom', labels: { boxWidth: 12, padding: 12 } },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                const v = ctx.parsed.y;
+                                if (ctx.datasetIndex === 0) return 'Tabung: ' + v.toLocaleString('id-ID') + ' tab';
+                                if (ctx.datasetIndex === 3) return 'Rasio Lunas: ' + v.toFixed(1) + '%';
+                                return ctx.dataset.label + ': Rp ' + v.toLocaleString('id-ID');
+                            },
+                        },
+                    },
+                },
+                scales: {
+                    x: { ticks: TICK, grid: { display: false } },
+                    y: {
+                        beginAtZero: true,
+                        ticks: TICK,
+                        title: { display: true, text: 'Tabung', font: { size: 10 }, color: '#888' },
+                    },
+                    y1: {
+                        position: 'right',
+                        beginAtZero: true,
+                        ticks: { ...TICK, callback: function (v) { return 'Rp ' + (v / 1000000).toFixed(0) + 'jt'; } },
+                        title: { display: true, text: 'Rp', font: { size: 10 }, color: '#888' },
+                        grid: { drawOnChartArea: false },
+                    },
+                    y2: {
+                        position: 'right',
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { ...TICK, callback: function (v) { return v + '%'; } },
+                        title: { display: true, text: 'Lunas', font: { size: 10 }, color: PURPLE },
+                        grid: { drawOnChartArea: false },
+                    },
+                },
+            },
+        });
+    })();
+</script>
+@endpush
 
 @endsection
