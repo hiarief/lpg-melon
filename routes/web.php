@@ -61,6 +61,7 @@ Route::middleware('auth')->group(function () {
         ->name('do.')
         ->group(function () {
             Route::get('/', [DeliveryOrderController::class, 'index'])->name('index');
+            Route::get('/export-year', [DeliveryOrderController::class, 'exportYear'])->name('export-year');
             Route::get('/create', [DeliveryOrderController::class, 'create'])->name('create');
             Route::post('/', [DeliveryOrderController::class, 'store'])->name('store');
             Route::get('/{do}/edit', [DeliveryOrderController::class, 'edit'])->name('edit');

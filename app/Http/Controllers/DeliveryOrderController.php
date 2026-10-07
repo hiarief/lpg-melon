@@ -4,13 +4,24 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryOrder;
-use App\Models\Outlet;
-use App\Models\OutletContractPayment;
 use App\Models\Period;
+use App\Models\Outlet;
+use App\Models\AccountTransfer;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class DeliveryOrderController extends Controller
 {
+    public function exportYear(Request $request)
+    {
+        $year = $request->input('year', date('Y'));
+        
+        return Excel::download(
+            new \App\Exports\DeliveryOrderYearExport((int) $year),
+            "delivery-order-{$year}.xlsx"
+        );
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
     //  INDEX
     // ──────────────────────────────────────────────────────────────────────────

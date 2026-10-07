@@ -164,8 +164,16 @@
     </div>
 
     @if($period->status === 'open')
-        <a href="{{ route('do.create', ['period_id' => $period->id]) }}" class="btn-primary btn-sm">+ Input DO</a>
+        <a href="{{route('do.create', ['period_id' => $period->id]) }}" class="btn-primary btn-sm">+ Input DO</a>
     @endif
+    <form method="GET" action="{{ route('do.export-year') }}" style="display:inline-flex;align-items:center;gap:6px">
+        <select name="year" class="field-select" style="padding:6px 10px;font-size:12px;width:auto">
+            @for($y = date('Y'); $y >= 2020; $y--)
+                <option value="{{ $y }}" {{ $y == date('Y') ? 'selected' : '' }}>{{ $y }}</option>
+            @endfor
+        </select>
+        <button type="submit" class="btn-sm" style="background:#059669;color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:12px;cursor:pointer;">📥 Export Excel</button>
+    </form>
 </div>
 
 {{-- ══════════════════════════════════════════════════════════════
