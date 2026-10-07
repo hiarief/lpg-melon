@@ -19,6 +19,14 @@
         @if($period->status === 'open')
             <button @click="showForm = !showForm" class="btn-primary btn-sm">+ Input Manual</button>
         @endif
+        <form method="GET" action="{{ route('savings.export-year') }}" style="display:inline-flex;align-items:center;gap:6px">
+            <select name="year" class="field-select" style="padding:6px 10px;font-size:12px;width:auto">
+                @for($y = date('Y'); $y >= 2020; $y--)
+                    <option value="{{ $y }}" {{ $y == date('Y') ? 'selected' : '' }}>{{ $y }}</option>
+                @endfor
+            </select>
+            <button type="submit" class="btn-sm" style="background:#059669;color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:12px;cursor:pointer;">📥 Export Excel</button>
+        </form>
     </div>
 
     {{-- Summary --}}
@@ -92,7 +100,106 @@
     </div>
     @endif
 
-    {{-- Tabel riwayat --}}
+    <!-- Tab toggle sort mode -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--text3);font-weight:600;">Urutkan berdasarkan:</span>
+        <div style="display:flex;gap:4px;background:var(--surface2);border-radius:8px;padding:3px">
+            <a href="{{ route('savings.index', ['period_id' => $period->id, 'sort' => 'transfer']) }}"
+               style="padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none;
+                      {{ $sortMode === 'transfer' ? 'background:var(--surface);color:var(--text1);box-shadow:0 1px 3px rgba(0,0,0,0.1);' : 'color:var(--text3);' }}">
+                📅 Tanggal Transfer
+            </a>
+            <a href="{{ route('savings.index', ['period_id' => $period->id, 'sort' => 'do']) }}"
+               style="padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none;
+                      {{ $sortMode === 'do' ? 'background:var(--surface);color:var(--text1);box-shadow:0 1px 3px rgba(0,0,0,0.1);' : 'color:var(--text3);' }}">
+                📦 Tanggal DO
+            </a>
+            <a href="{{ route('savings.index', ['period_id' => $period->id, 'sort' => 'per_do']) }}"
+               style="padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none;
+                      {{ $sortMode === 'per_do' ? 'background:var(--surface);color:var(--text1);box-shadow:0 1px 3px rgba(0,0,0,0.1);' : 'color:var(--text3);' }}">
+                📊 Mutasi per DO
+            </a>
+        </div>
+        @if($sortMode === 'per_do')
+            <span style="font-size:10px;color:#059669;background:#f0fdf4;padding:3px 8px;border-radius:4px;">
+                💡 Ringkasan tabungan per tanggal DO
+            </span>
+        @elseif($sortMode === 'do')
+            <span style="font-size:10px;color:#1d4ed8;background:#eff6ff;padding:3px 8px;border-radius:4px;">
+                💡 Diurutkan by tanggal DO terlama
+            </span>
+        @else
+            <span style="font-size:10px;color:#7c3aed;background:#f5f3ff;padding:3px 8px;border-radius:4px;">
+                💡 Diurutkan by tanggal transfer
+            </span>
+        @endif
+    </div>
+
+    <!-- Tabel per-DO (hanya tampil di mode per_do) -->
+    @if($sortMode === 'per_do')
+    <div class="s-card" style="margin-bottom:10px">
+        <div class="s-card-header">📊 Mutasi Tabungan per Tanggal DO — {{ $period->label }}</div>
+        <div style="padding:10px 14px;background:#f0fdf4;border-bottom:1px solid #bbf7d0;font-size:11px;color:#059669;">
+            💡 Menampilkan berapa tabungan (surplus) yang dihasilkan dari tiap DO berdasarkan <strong>tanggal DO</strong>.
+            Satu transfer bisa melunasi beberapa DO, jadi surplus dibagi rata ke setiap DO yang dilunasi.
+        </div>
+        <div class="scroll-x">
+            <table class="mob-table">
+                <thead>
+                    <tr>
+                        <th>Tanggal DO</th>
+                        <th>Pangkalan</th>
+                        <th class="r">Qty DO</th>
+                        <th class="r">Nilai DO</th>
+                        <th class="r">Surplus (Tabungan)</th>
+                        <th class="r">Surplus/DO</th>
+                        <th>Transfer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($perDoData as $d)
+                    <tr>
+                        <td style="white-space:nowrap;font-weight:600;color:#1d4ed8;">
+                            {{ \Carbon\Carbon::parse($d['do_date'])->format('d/m/Y') }}
+                        </td>
+                        <td style="font-size:11px;">
+                            <span class="badge badge-blue" style="font-size:9px;">{{ $d['outlet_name'] }}</span>
+                        </td>
+                        <td class="r">{{ number_format($d['do_qty']) }}</td>
+                        <td class="r">Rp {{ number_format($d['do_value']) }}</td>
+                        <td class="r bold" style="color:#059669;">Rp {{ number_format($d['surplus']) }}</td>
+                        <td class="r" style="color:#059669;">Rp {{ number_format($d['do_value'] > 0 ? $d['surplus'] / $d['do_qty'] : 0) }}</td>
+                        <td style="font-size:10px;color:var(--text3);">
+                            @foreach($d['transfer_ids'] as $tid)
+                                <span class="badge" style="background:#f5f3ff;color:#6d28d9;font-size:9px;">TF #{{ $tid }}</span>
+                            @endforeach
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">
+                            Belum ada data mutasi per DO.
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+                @if(count($perDoData) > 0)
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="2" class="bold">TOTAL</td>
+                        <td class="r">{{ number_format(collect($perDoData)->sum('do_qty')) }}</td>
+                        <td class="r">Rp {{ number_format(collect($perDoData)->sum('do_value')) }}</td>
+                        <td class="r bold" style="color:#059669;">Rp {{ number_format(collect($perDoData)->sum('surplus')) }}</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+                @endif
+            </table>
+        </div>
+    </div>
+    @endif
+
+    <!-- Tabel riwayat -->
     <div class="s-card">
         <div class="s-card-header">📋 Riwayat Tabungan — {{ $period->label }}</div>
         <div class="scroll-x">
@@ -101,6 +208,7 @@
                     <tr>
                         <th>Tgl DO</th>
                         <th>Tgl Transfer</th>
+                        <th>Selisih</th>
                         <th>Tgl Entry</th>
                         <th>Jenis</th>
                         <th>DO / Keterangan</th>
@@ -112,9 +220,10 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {{-- Baris saldo awal --}}
+                    <!-- Baris saldo awal -->
                     @if($period->opening_surplus > 0)
                     <tr style="background:var(--surface2)">
+                        <td style="color:var(--text3)">—</td>
                         <td style="color:var(--text3)">—</td>
                         <td style="color:var(--text3)">—</td>
                         <td style="color:var(--text3);font-style:italic">Awal {{ $period->label }}</td>
@@ -153,11 +262,25 @@
                             @endif
                         </td>
 
-                        {{-- Tgl Transfer --}}
+                        <!-- Tgl Transfer -->
                         <td style="white-space:nowrap;">
                             @if($tfDate)
                                 <span style="color:#7c3aed;font-weight:600;">
                                     {{ \Carbon\Carbon::parse($tfDate)->format('d/m/Y') }}
+                                </span>
+                            @else
+                                <span style="color:var(--text3);">—</span>
+                            @endif
+                        </td>
+
+                        <!-- Selisih hari -->
+                        <td style="white-space:nowrap;">
+                            @if($r['selisih_hari'] !== null)
+                                <span style="font-size:10px;font-weight:600;
+                                             color:{{ $r['selisih_hari'] == 0 ? '#059669' : ($r['selisih_hari'] <= 3 ? '#d97706' : '#dc2626') }};
+                                             background:{{ $r['selisih_hari'] == 0 ? '#f0fdf4' : ($r['selisih_hari'] <= 3 ? '#fffbeb' : '#fef2f2') }};
+                                             padding:2px 6px;border-radius:4px;">
+                                    {{ $r['selisih_hari'] == 0 ? 'Hari yang same' : $r['selisih_hari'] . ' hari' }}
                                 </span>
                             @else
                                 <span style="color:var(--text3);">—</span>
@@ -242,7 +365,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ $period->status === 'open' ? '10' : '9' }}"
+                        <td colspan="{{ $period->status === 'open' ? '11' : '10' }}"
                             style="text-align:center;padding:20px;color:var(--text3)">
                             Belum ada riwayat tabungan bulan ini.
                             @if($period->opening_surplus == 0)
@@ -256,7 +379,7 @@
                 @if(count($rows) > 0 || $period->opening_surplus > 0)
                 <tfoot>
                     <tr class="total-row">
-                        <td colspan="5" class="bold">SALDO TABUNGAN AKHIR</td>
+                        <td colspan="6" class="bold">SALDO TABUNGAN AKHIR</td>
                         <td class="r">Rp {{ number_format($period->opening_surplus + $totalIn) }}</td>
                         <td class="r">Rp {{ number_format($totalOut) }}</td>
                         <td class="r">Rp {{ number_format($balance) }}</td>

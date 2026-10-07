@@ -6,14 +6,28 @@ use App\Http\Controllers\Controller;
 use App\Models\Period;
 use App\Models\Saving;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class SavingController extends Controller
 {
+    public function exportYear(Request $request)
+    {
+        $year = $request->input('year', date('Y'));
+        
+        return Excel::download(
+            new \App\Exports\SavingsYearExport((int) $year),
+            "tabungan-{$year}.xlsx"
+        );
+    }
+
     public function index(Request $request)
     {
         $periodId = $request->period_id ?? Period::current()?->id;
         $period = Period::findOrFail($periodId);
         $periods = Period::orderByDesc('year')->orderByDesc('month')->get();
+
+        // Sort mode: 'transfer' (default), 'do', atau 'per_do'
+        $sortMode = in_array($request->sort, ['do', 'per_do']) ? $request->sort : 'transfer';
 
         // Eager load accountTransfer beserta deliveryOrders-nya
         $savings = Saving::with([
@@ -24,10 +38,17 @@ class SavingController extends Controller
             ->orderBy('id')
             ->get();
 
-        // Sort: yang punya DO → urutkan by tanggal DO terlama; manual → by entry_date
-        $savings = $savings->sortBy(function ($s) {
-            if ($s->accountTransfer && $s->accountTransfer->deliveryOrders->isNotEmpty()) {
-                return $s->accountTransfer->deliveryOrders->min('do_date');
+        // Sort berdasarkan mode
+        $savings = $savings->sortBy(function ($s) use ($sortMode) {
+            if ($sortMode === 'do' || $sortMode === 'per_do') {
+                // Urutkan by tanggal DO terlama
+                if ($s->accountTransfer && $s->accountTransfer->deliveryOrders->isNotEmpty()) {
+                    return $s->accountTransfer->deliveryOrders->min('do_date');
+                }
+            }
+            // Default: by tanggal transfer (atau entry_date kalau manual)
+            if ($s->accountTransfer) {
+                return $s->accountTransfer->transfer_date;
             }
             return $s->entry_date;
         })->values();
@@ -47,18 +68,87 @@ class SavingController extends Controller
             $transferDate  = $s->accountTransfer?->transfer_date ?? null;
             $earliestDo    = $doList->isNotEmpty() ? $doList->sortBy('do_date')->first() : null;
 
+            // Selisih hari antara tanggal DO dan tanggal transfer
+            $selisihHari = null;
+            if ($earliestDo && $transferDate) {
+                $selisihHari = $earliestDo->do_date->diffInDays($transferDate);
+            }
+
             $rows[] = [
                 'saving'       => $s,
                 'balance'      => $running,
                 'transfer_date'=> $transferDate,
                 'do_list'      => $doList,
                 'earliest_do'  => $earliestDo,
+                'selisih_hari' => $selisihHari,
             ];
+        }
+
+        // ── Data per-DO untuk tab "Mutasi per DO" ────────────────────────────
+        // Ambil semua DO yang punya saving, kelompokkan per tanggal DO
+        // TIDAK dibatasi period_id — DO September yang dilunasi transfer Oktober
+        // harus muncul di bulan September, bukan Oktober
+        $perDoData = [];
+        if ($sortMode === 'per_do') {
+            // Query semua saving yang terhubung ke transfer (surplus otomatis)
+            // Tidak filter by period_id — ambil semua
+            $allSavingsWithTransfer = Saving::with([
+                'accountTransfer.deliveryOrders',
+            ])
+                ->whereNotNull('account_transfer_id')
+                ->get();
+
+            // Kelompokkan per tanggal DO
+            $doGroups = [];
+            foreach ($allSavingsWithTransfer as $s) {
+                foreach ($s->accountTransfer->deliveryOrders as $do) {
+                    $doDateKey = $do->do_date->format('Y-m-d');
+                    if (!isset($doGroups[$doDateKey])) {
+                        $doGroups[$doDateKey] = [
+                            'do_date'     => $do->do_date,
+                            'outlet_name' => $do->outlet->name ?? '-',
+                            'do_qty'      => 0,
+                            'do_value'    => 0,
+                            'surplus'     => 0,
+                            'transfer_ids'=> [],
+                            'saving_ids'  => [],
+                        ];
+                    }
+                    $doGroups[$doDateKey]['do_qty']   += $do->qty;
+                    $doGroups[$doDateKey]['do_value'] += $do->qty * $do->price_per_unit;
+                    $doGroups[$doDateKey]['surplus']  += $s->amount;
+                    $doGroups[$doDateKey]['transfer_ids'][] = $s->accountTransfer->id;
+                    $doGroups[$doDateKey]['saving_ids'][]  = $s->id;
+                }
+            }
+
+            // Filter: hanya tampilkan DO yang tanggalnya termasuk dalam periode ini
+            $periodStart = \Carbon\Carbon::create($period->year, $period->month, 1)->startOfMonth();
+            $periodEnd = $periodStart->copy()->endOfMonth();
+
+            // Sort by tanggal DO
+            ksort($doGroups);
+
+            // Format untuk view — hanya DO yang termasuk dalam periode ini
+            foreach ($doGroups as $dateKey => $g) {
+                $doDate = \Carbon\Carbon::parse($g['do_date']);
+                if ($doDate->between($periodStart, $periodEnd)) {
+                    $perDoData[] = [
+                        'do_date'      => $g['do_date'],
+                        'outlet_name'  => $g['outlet_name'],
+                        'do_qty'       => $g['do_qty'],
+                        'do_value'     => $g['do_value'],
+                        'surplus'      => $g['surplus'],
+                        'transfer_ids' => array_unique($g['transfer_ids']),
+                        'saving_ids'   => array_unique($g['saving_ids']),
+                    ];
+                }
+            }
         }
 
         return view('savings.index', compact(
             'period', 'periods', 'savings', 'rows',
-            'totalIn', 'totalOut', 'balance'
+            'totalIn', 'totalOut', 'balance', 'sortMode', 'perDoData'
         ));
     }
 

@@ -117,6 +117,7 @@ Route::middleware('auth')->group(function () {
         ->name('savings.')
         ->group(function () {
             Route::get('/', [SavingController::class, 'index'])->name('index');
+            Route::get('/export-year', [SavingController::class, 'exportYear'])->name('export-year');
             Route::post('/', [SavingController::class, 'store'])->name('store');
             Route::delete('/{saving}', [SavingController::class, 'destroy'])->name('destroy');
         });
