@@ -111,6 +111,21 @@ class ContractDistribution extends Model
         return $this->outlet?->contract_type ?? 'none';
     }
 
+    public function sisaKontrakFlat(): int
+    {
+        return $this->isFlat() ? $this->sisaKontrakAngga() : 0;
+    }
+
+    public function tagihanDistribusiBersih(): int
+    {
+        return $this->isFlat() ? $this->tagihanDistribusiBersihAngga() : 0;
+    }
+
+    public function piutangDistribusi(): int
+    {
+        return $this->isFlat() ? $this->piutangDistribusiAngga() : $this->piutangDistribusiSukmedi();
+    }
+
     public function isFlat(): bool   { return $this->contractType() === 'flat_monthly'; }
     public function isPerDo(): bool  { return $this->contractType() === 'per_do'; }
 
