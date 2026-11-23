@@ -119,6 +119,14 @@
         </div>
         @endforeach
 
+        {{-- Surplus (Tabungan) --}}
+        <div class="card" style="grid-column:span 2;padding:10px 12px;border-left:3px">
+            <div style="font-size:10px;color:var(--text3)">Surplus (Tabungan)</div>
+            <div style="font-size:16px;font-weight:600;color:var(--melon-dark)">
+                Rp {{ number_format($totalSurplus) }}
+            </div>
+        </div>
+
         <div class="card" style="grid-column:span 2;padding:10px 12px;border-left:3px">
             <div style="font-size:10px;color:var(--text3)">Saldo Penampung Saat Ini</div>
             <div style="font-size:18px;font-weight:700;color:{{ $penampungNow >= 0 ? '#c2410c' : '#dc2626' }}">
@@ -128,6 +136,8 @@
                 = {{ number_format($period->opening_penampung) }}
                 + {{ number_format($totalDeposited) }}
                 − {{ number_format($totalTransferred) }}
+                − {{ number_format($totalAdmin) }}
+                − {{ number_format($totalSurplus) }}
             </div>
         </div>
     </div>
@@ -142,6 +152,7 @@
                     + {{ number_format($totalDeposited) }}
                     − {{ number_format($totalTransferred) }}
                     − {{ number_format($totalAdmin) }}
+                    − {{ number_format($totalSurplus) }}
                 </div>
             </div>
             <div style="font-size:22px;font-weight:700;color:{{ $penampungNow >= 0 ? '#c2410c' : '#dc2626' }};white-space:nowrap">

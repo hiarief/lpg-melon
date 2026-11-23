@@ -280,7 +280,8 @@ class TransferController extends Controller
         $totalTransferQty   = $transfers->sum('do_equivalent_qty');
         $totalSurplus       = $transfers->sum('surplus');
         // Penampung sekarang: opening + setoran masuk - transfer keluar - admin fee (jika admin keluar dari penampung)
-        $penampungNow       = $period->opening_penampung + $totalDeposited - $totalTransferred - $totalAdmin;
+        // Penampung sekarang: opening + setoran masuk - transfer keluar - admin fee - surplus (tabungan)
+        $penampungNow       = $period->opening_penampung + $totalDeposited - $totalTransferred - $totalAdmin - $totalSurplus;
 
         // Utilisasi: seberapa besar dari penampung sudah tersalurkan
         $utilisasiBar = ($period->opening_penampung + $totalDeposited) > 0

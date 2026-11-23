@@ -257,7 +257,7 @@
             </div>
             <div class="card" style="padding:10px 12px">
                 <div style="font-size:10px;color:var(--text3)">Saldo BANK (penampung)</div>
-                <div style="font-size:16px;font-weight:600;color:{{ $finalBankBal >= 0 ? '#4338ca' : '#dc2626' }};margin-top:2px">Rp {{ number_format($finalBankBal) }}</div>
+                <div style="font-size:16px;font-weight:600;color:{{ $finalBankBal >= 0 ? '#4338ca' : '#dc2626' }};margin-top:2px">Rp {{ number_format($finalBankBal - $totalSurplus - $totalAdminFees) }}</div>
                 <div style="font-size:10px;color:var(--text3)">avg Rp {{ number_format($summary['avgDailyBankBal']) }}/hari</div>
             </div>
         </div>
@@ -269,7 +269,7 @@
                 <div style="font-size:10px;color:var(--text3);margin-top:2px">kas masuk − pengeluaran − TF penampung − admin TF</div>
             </div>
             <div style="font-size:20px;font-weight:700;color:{{ $netTotal >= 0 ? 'var(--melon-dark)' : '#dc2626' }};white-space:nowrap">
-                Rp {{ number_format($netTotal) }}
+                Rp {{ number_format($netTotal  - $totalSurplus - $totalAdminFees) }}
             </div>
         </div>
 
